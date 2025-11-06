@@ -1,42 +1,44 @@
-//Representa conexiones entre nodos en el grafo genealogico
+// Representa conexiones entre nodos en el grafo geneal√≥gico
 using System;
 
-public class AristaGrafo
+namespace Nucleo.Grafo
 {
-    public Nodo Origen { get; set; }
-    public Nodo Destino { get; set; }
-    public double Distancia { get; set; } // en kilÛmetros
-
-    //Constructor
-    public AristaGrafo(NodoGrafo origen, NodoGrafo destino, double distancia)
+    public class AristaGrafo
     {
-        this.Origen = origen;
-        this.Destino = destino;
-        this.Distancia = distancia;
-    }
+        public NodoGrafo Origen { get; }
+        public NodoGrafo Destino { get; }
+        /// <summary>
+        /// Distancia en kil√≥metros, calculada con Haversine.
+        /// </summary>
+        public double Distancia { get; }
 
-    //MÈtodo pasar grados a radines
-    private double GradosARadianes(double grados)
-    {
-        return grados * (Math.PI / 180);
-    }
+        public AristaGrafo(NodoGrafo origen, NodoGrafo destino)
+        {
+            Origen = origen ?? throw new ArgumentNullException(nameof(origen));
+            Destino = destino ?? throw new ArgumentNullException(nameof(destino));
+            Distancia = CalcularDistancia(Origen, Destino);
+        }
 
-    //MÈtodo para calcular distacia entre dos nodos usando la fÛrmula Haversine
-    //Usamos Haversine porque hay que tomar en cuenta la curvatura de la Tierra
-    private double CalcularDistancia(NodoGrafo nodo1, NodoGrafo nodo2)
-    {
-        double radioTierra = 6371; // Radio de la Tierra en kilÛmetros
-        double dLat = GradosARadianes(nodo2.Latitud - nodo1.Latitud);
-        double dLon = GradosARadianes(nodo2.Longitud - nodo1.Longitud);
-        double lat1 = GradosARadianes(nodo1.Latitud);
-        double lat2 = GradosARadianes(nodo2.Latitud);
+        private static double GradosARadianes(double grados)
+            => grados * (Math.PI / 180.0);
 
-        double hav = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                     Math.Cos(lat1) * Math.Cos(lat2) *
-                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        /// <summary>
+        /// Distancia Haversine entre dos coordenadas (lat, lon) en km.
+        /// </summary>
+        private static double CalcularDistancia(NodoGrafo nodo1, NodoGrafo nodo2)
+        {
+            const double radioTierraKm = 6371.0;
+            double dLat = GradosARadianes(nodo2.Latitud - nodo1.Latitud);
+            double dLon = GradosARadianes(nodo2.Longitud - nodo1.Longitud);
+            double lat1 = GradosARadianes(nodo1.Latitud);
+            double lat2 = GradosARadianes(nodo2.Latitud);
 
-        double c = 2 * Math.Atan2(Math.Sqrt(hav), Math.Sqrt(1 - hav));
+            double hav = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                         Math.Cos(lat1) * Math.Cos(lat2) *
+                         Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
 
-        return radioTierra * c;
+            double c = 2 * Math.Atan2(Math.Sqrt(hav), Math.Sqrt(1 - hav));
+            return radioTierraKm * c;
+        }
     }
 }

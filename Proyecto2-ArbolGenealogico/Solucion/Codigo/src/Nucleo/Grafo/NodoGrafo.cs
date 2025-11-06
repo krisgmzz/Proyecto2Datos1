@@ -1,44 +1,58 @@
-//Representa a cada persona en el grafo genealogico
+// Representa a cada persona en el grafo geneal√≥gico
 using System;
+using System.Globalization;
 
-public class NodoGrafo
+namespace Nucleo.Grafo
 {
-    public string Nombre { get; set; }
-    public string Cedula { get; set; }
-    public string FotoRuta { get; set; }  // ruta de la foto en el sistema
-    public DateTime FechaNacimiento { get; set; }
-    public DateTime? FechaFallecimiento { get; set; } // null si est· vivo
-    public double Latitud { get; set; }
-    public double Longitud { get; set; }
-
-    //Propiedad calculada para obtener la edad actual o la edad al fallecer
-    public int Edad
+    public class NodoGrafo
     {
-        get
+        public string Nombre { get; set; } = "";
+        public string Cedula { get; set; } = "";
+        public string FotoRuta { get; set; } = "";  // ruta de la foto en el sistema
+        public DateTime FechaNacimiento { get; set; }
+        public DateTime? FechaFallecimiento { get; set; } // null si est√° vivo
+        public double Latitud { get; set; }
+        public double Longitud { get; set; }
+
+        /// <summary>
+        /// Edad actual (si vive) o edad al fallecer (si tiene fecha de fallecimiento).
+        /// </summary>
+        public int Edad
         {
-            DateTime fin = FechaFallecimiento ?? DateTime.Now;
-            int edad = fin.Year - FechaNacimiento.Year;
-            if (fin < FechaNacimiento.AddYears(edad)) edad--;
-            return edad;
+            get
+            {
+                var fin = FechaFallecimiento ?? DateTime.Today;
+                int edad = fin.Year - FechaNacimiento.Year;
+                if (fin < FechaNacimiento.AddYears(edad)) edad--;
+                return edad;
+            }
+        }
+
+        public NodoGrafo(
+            string nombre,
+            string cedula,
+            string fotoRuta,
+            DateTime fechaNacimiento,
+            DateTime? fechaFallecimiento,
+            double latitud,
+            double longitud)
+        {
+            // Asignamos SIEMPRE a las propiedades con May√∫scula (coinciden con su nombre)
+            Nombre = nombre ?? "";
+            Cedula = cedula ?? "";
+            FotoRuta = fotoRuta ?? "";
+            FechaNacimiento = fechaNacimiento;
+            FechaFallecimiento = fechaFallecimiento;
+            Latitud = latitud;
+            Longitud = longitud;
+        }
+
+        public override string ToString()
+        {
+            // Usamos cultura invariable para lat/long
+            var lat = Latitud.ToString(CultureInfo.InvariantCulture);
+            var lon = Longitud.ToString(CultureInfo.InvariantCulture);
+            return $"{Nombre} ({Cedula}) - {Edad} a√±os - Ubicaci√≥n: ({lat}, {lon})";
         }
     }
-
-    //Constructor
-    public NodoGrafo(string nombre, string cedula, string fotoRuta, DateTime fechaNacimiento, DateTime? fechaFallecimiento, double latitud, double longitud)
-    {
-        this.Nombre = nombre;
-        this.cedula = cedula;
-        this.FotoRuta = fotoRuta;
-        this.FechaNacimiento = fechaNacimiento;
-        this.FechaFallecimiento = fechaFallecimiento;
-        this.Latitud = latitud;
-        this.Longitud = longitud;
-    }
-
-    //MÈtodo para representar el nodo como cadena
-    public override string ToString()
-    {
-        return $"{Nombre} ({Cedula}) - {Edad} aÒos - UbicaciÛn: ({Latitud}, {Longitud})";
-    }
-    
 }
