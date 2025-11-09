@@ -224,7 +224,7 @@ namespace Aplicacion.WinForms.Controles
         private void DibujarPersona(string id, Graphics g)
         {
             if (!_personas.TryGetValue(id, out var p)) return;
-            if (!_pos.TryGetValue(id, out var pt)) return;
+            if (!_pos.TryGetValue(id, out var pt)) return; 
 
             var rectCirculo = new RectangleF(pt.X, pt.Y, _radio * 2, _radio * 2);
             var rectTexto = new RectangleF(pt.X - _radio * 0.5f, pt.Y + _radio * 2 + 6, _radio * 3f, 24);

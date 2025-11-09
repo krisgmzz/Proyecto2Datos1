@@ -1,33 +1,27 @@
-// Representa conexiones entre nodos en el grafo genealógico
 using System;
 
 namespace Nucleo.Grafo
 {
+    // Representa conexiones entre nodos (personas) en el grafo genealógico
     public class AristaGrafo
     {
-        public NodoGrafo Origen { get; }
-        public NodoGrafo Destino { get; }
-        /// <summary>
-        /// Distancia en kilómetros, calculada con Haversine.
-        /// </summary>
-        public double Distancia { get; }
+        public NodoGrafo Origen { get; set; }
+        public NodoGrafo Destino { get; set; }
+        public double Distancia { get; set; } // en kilómetros
 
-        public AristaGrafo(NodoGrafo origen, NodoGrafo destino)
+        // Constructor
+        public AristaGrafo(NodoGrafo origen, NodoGrafo destino, double distancia)
         {
-            Origen = origen ?? throw new ArgumentNullException(nameof(origen));
-            Destino = destino ?? throw new ArgumentNullException(nameof(destino));
-            Distancia = CalcularDistancia(Origen, Destino);
+            this.Origen = origen;
+            this.Destino = destino;
+            this.Distancia = distancia;
         }
 
-        private static double GradosARadianes(double grados)
-            => grados * (Math.PI / 180.0);
-
-        /// <summary>
-        /// Distancia Haversine entre dos coordenadas (lat, lon) en km.
-        /// </summary>
-        private static double CalcularDistancia(NodoGrafo nodo1, NodoGrafo nodo2)
+        // Método para calcular distancia entre dos nodos usando Haversine
+        // (para asegurar consistencia si se quiere recalcular)
+        public static double CalcularDistancia(NodoGrafo nodo1, NodoGrafo nodo2)
         {
-            const double radioTierraKm = 6371.0;
+            const double radioTierra = 6371; // km
             double dLat = GradosARadianes(nodo2.Latitud - nodo1.Latitud);
             double dLon = GradosARadianes(nodo2.Longitud - nodo1.Longitud);
             double lat1 = GradosARadianes(nodo1.Latitud);
@@ -38,7 +32,9 @@ namespace Nucleo.Grafo
                          Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
 
             double c = 2 * Math.Atan2(Math.Sqrt(hav), Math.Sqrt(1 - hav));
-            return radioTierraKm * c;
+            return radioTierra * c;
         }
+
+        private static double GradosARadianes(double grados) => grados * (Math.PI / 180);
     }
 }
