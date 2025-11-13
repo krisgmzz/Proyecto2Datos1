@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Aplicacion.WinForms.Controles;
+using System.Drawing;
 
 namespace Aplicacion.WinForms.Formularios
 {
@@ -15,6 +16,9 @@ namespace Aplicacion.WinForms.Formularios
 
         private readonly BindingSource _bsPersonas = new();
         private readonly List<PersonaFila> _mock = new();
+
+        // Relaciones del árbol (Padre/Madre → Hijo)
+        private readonly List<ControlArbolGenealogico.Relacion> _relaciones = new();
 
         // Se crean en Load → anulables
         private SplitContainer? _split;
@@ -27,6 +31,7 @@ namespace Aplicacion.WinForms.Formularios
             SeleccionarPestaña(pestañaInicial);
 
             Load += FormPrincipal_Load;
+
             dtpFechaNacimiento.ValueChanged += (_, __) => { ActualizarEdadCalculada(); ActualizarArbol(); };
             dtpFechaDefuncion.ValueChanged += (_, __) => { ActualizarEdadCalculada(); ActualizarArbol(); };
             chkFallecido.CheckedChanged += (_, __) =>
@@ -35,14 +40,19 @@ namespace Aplicacion.WinForms.Formularios
                 ActualizarEdadCalculada();
                 ActualizarArbol();
             };
+
+            BackColor = System.Drawing.Color.FromArgb(23, 25, 29);
+            ForeColor = System.Drawing.Color.WhiteSmoke;
         }
 
         // Ajuste nullability (evita CS8622)
         private void FormPrincipal_Load(object? sender, EventArgs e)
         {
             CargarAvatarGenericoSiNoHayFoto();
-            CargarMockEnGrillaYCombos();
-            PrepararLayoutLadoALado();
+            CargarMockEnGrillaYCombos();          // carga 3 personas
+            CargarRelacionesEjemplo();            // crea 1 relación visible (línea en el árbol)
+            PrepararLayoutLadoALado();            // muestra el árbol a la derecha
+            AplicarTemaInicial();                 // tonos oscuros/azules
             ActualizarEdadCalculada();
             ActualizarArbol();
         }
@@ -95,8 +105,9 @@ namespace Aplicacion.WinForms.Formularios
             _ctrlArbol = new ControlArbolGenealogico
             {
                 Dock = DockStyle.Fill,
-                BackColor = System.Drawing.Color.White
+                BackColor = Color.FromArgb(24, 26, 30) // oscuro/azulado
             };
+            _ctrlArbol.AplicarTema(true); // activar tema oscuro en el control
             _ctrlArbol.EstablecerAvatarGenerico(ResolverRutaRecurso("avatar_gen.png"));
             _split.Panel2.Controls.Add(_ctrlArbol);
 
@@ -106,6 +117,25 @@ namespace Aplicacion.WinForms.Formularios
             // Ocultar pestaña "Árbol" si existía
             if (tabPrincipal.TabPages.Contains(tabArbol))
                 tabPrincipal.TabPages.Remove(tabArbol);
+        }
+
+        private void AplicarTemaInicial()
+        {
+            // Tonos oscuros para toda la izquierda
+            var fondo = Color.FromArgb(23, 25, 29);
+            var texto = Color.WhiteSmoke;
+            var panel = Color.FromArgb(30, 32, 36);
+
+            BackColor = fondo;
+            ForeColor = texto;
+
+            void Pintar(Control c)
+            {
+                c.BackColor = (c is Panel or TabPage or SplitContainer) ? panel : fondo;
+                c.ForeColor = texto;
+                foreach (Control h in c.Controls) Pintar(h);
+            }
+            foreach (Control c in Controls) Pintar(c);
         }
 
         private void HabilitarEdicionPersona(bool habilitar)
@@ -164,30 +194,22 @@ namespace Aplicacion.WinForms.Formularios
             _mock.Clear();
             _mock.AddRange(new[]
             {
-                new PersonaFila { Cedula="101", Nombres="Ana",  Apellidos="Rojas", FechaNacimiento=new DateTime(1985,5,2), Fallecido=false, Latitud=9.93, Longitud=-84.08, Pais="Costa Rica", Ciudad="San José", EdadTexto="" },
-                new PersonaFila { Cedula="102", Nombres="Luis", Apellidos="Vega",  FechaNacimiento=new DateTime(1982,11,15), Fallecido=false, Latitud=10.0, Longitud=-84.2, Pais="Costa Rica", Ciudad="Heredia",  EdadTexto="" },
-                new PersonaFila { Cedula="103", Nombres="María",Apellidos="Soto",  FechaNacimiento=new DateTime(1950,3,10), Fallecido=true,  FechaDefuncion=new DateTime(2020,8,1), Latitud=9.86, Longitud=-83.91, Pais="Costa Rica", Ciudad="Cartago", EdadTexto="" },
+                new PersonaFila { Cedula="101", Nombres="Ana",  Apellidos="Rojas", FechaNacimiento=new DateTime(1985,5,2), Fallecido=false, Latitud=9.93, Longitud=-84.08, Pais="Costa Rica", Ciudad="San José", EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="102", Nombres="Luis", Apellidos="Vega",  FechaNacimiento=new DateTime(1982,11,15), Fallecido=false, Latitud=10.0, Longitud=-84.2,  Pais="Costa Rica", Ciudad="Heredia",  EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="103", Nombres="María",Apellidos="Soto",  FechaNacimiento=new DateTime(1950,3,10), Fallecido=true,  FechaDefuncion=new DateTime(2020,8,1), Latitud=9.86, Longitud=-83.91, Pais="Costa Rica", Ciudad="Cartago", EdadTexto="", FotoRuta=null },
             });
 
             _mock.ForEach(p => p.EdadTexto = CalcularEdadTexto(p.FechaNacimiento, p.Fallecido, p.FechaDefuncion));
             _bsPersonas.DataSource = _mock;
 
-            var items = new List<string> { "(Seleccione)" };
-            items.AddRange(_mock.Select(p => $"{p.Cedula} - {p.Nombres} {p.Apellidos}"));
-            cmbPersonaActiva.Items.Clear();
-            cmbAncestroRaiz.Items.Clear();
-            foreach (var it in items) { cmbPersonaActiva.Items.Add(it); cmbAncestroRaiz.Items.Add(it); }
+            RefrescarCombosDesdeMock();
+        }
 
-            var padres = new List<string> { "(Ninguno)" };
-            padres.AddRange(_mock.Select(p => $"{p.Cedula} - {p.Nombres} {p.Apellidos}"));
-            cmbPadre.Items.Clear();
-            cmbMadre.Items.Clear();
-            foreach (var it in padres) { cmbPadre.Items.Add(it); cmbMadre.Items.Add(it); }
-
-            cmbPersonaActiva.SelectedIndex = 0;
-            cmbPadre.SelectedIndex = 0;
-            cmbMadre.SelectedIndex = 0;
-            cmbAncestroRaiz.SelectedIndex = 0;
+        private void CargarRelacionesEjemplo()
+        {
+            // Luis (102) + Ana (101) → María (103)  → verás dos líneas en el árbol
+            _relaciones.Clear();
+            _relaciones.Add(new ControlArbolGenealogico.Relacion { PadreId = "102", MadreId = "101", HijoId = "103" });
         }
 
         // ==== Edad ====
@@ -262,6 +284,7 @@ namespace Aplicacion.WinForms.Formularios
                 txtLongitud.Text = p.Longitud.ToString(CultureInfo.InvariantCulture);
                 txtPais.Text = p.Pais;
                 txtCiudad.Text = p.Ciudad;
+                picFoto.ImageLocation = p.FotoRuta ?? picFoto.ImageLocation;
                 CargarAvatarGenericoSiNoHayFoto();
                 ActualizarEdadCalculada();
             }
@@ -285,6 +308,9 @@ namespace Aplicacion.WinForms.Formularios
                 if (dgvPersonas.CurrentRow.DataBoundItem is PersonaFila p)
                 {
                     _mock.Remove(p);
+                    // también quitamos relaciones donde aparezca
+                    _relaciones.RemoveAll(rel => rel.HijoId == p.Cedula || rel.PadreId == p.Cedula || rel.MadreId == p.Cedula);
+
                     _bsPersonas.ResetBindings(false);
                     RefrescarCombosDesdeMock();
                     ActualizarArbol();
@@ -331,7 +357,8 @@ namespace Aplicacion.WinForms.Formularios
                 Longitud = lon,
                 Pais = txtPais.Text.Trim(),
                 Ciudad = txtCiudad.Text.Trim(),
-                EdadTexto = "" // se setea abajo
+                EdadTexto = "",
+                FotoRuta = picFoto.ImageLocation
             };
             fila.EdadTexto = CalcularEdadTexto(fila.FechaNacimiento, fila.Fallecido, fila.FechaDefuncion);
 
@@ -361,6 +388,7 @@ namespace Aplicacion.WinForms.Formularios
                     actual.Pais = fila.Pais;
                     actual.Ciudad = fila.Ciudad;
                     actual.EdadTexto = fila.EdadTexto;
+                    actual.FotoRuta = fila.FotoRuta;
                 }
             }
 
@@ -388,10 +416,10 @@ namespace Aplicacion.WinForms.Formularios
             cmbMadre.Items.Clear();
             foreach (var it in padres) { cmbPadre.Items.Add(it); cmbMadre.Items.Add(it); }
 
-            cmbPersonaActiva.SelectedIndex = 0;
-            cmbPadre.SelectedIndex = 0;
-            cmbMadre.SelectedIndex = 0;
-            cmbAncestroRaiz.SelectedIndex = 0;
+            if (cmbPersonaActiva.Items.Count > 0) cmbPersonaActiva.SelectedIndex = 0;
+            if (cmbPadre.Items.Count > 0) cmbPadre.SelectedIndex = 0;
+            if (cmbMadre.Items.Count > 0) cmbMadre.SelectedIndex = 0;
+            if (cmbAncestroRaiz.Items.Count > 0) cmbAncestroRaiz.SelectedIndex = 0;
         }
 
         private void btnCancelarPersona_Click(object sender, EventArgs e)
@@ -436,6 +464,8 @@ namespace Aplicacion.WinForms.Formularios
                 txtLongitud.Text = p.Longitud.ToString(CultureInfo.InvariantCulture);
                 txtPais.Text = p.Pais;
                 txtCiudad.Text = p.Ciudad;
+                picFoto.ImageLocation = p.FotoRuta ?? picFoto.ImageLocation;
+
                 CargarAvatarGenericoSiNoHayFoto();
                 ActualizarEdadCalculada();
             }
@@ -458,20 +488,68 @@ namespace Aplicacion.WinForms.Formularios
             lblEdadCalculada.Text = "Edad: —";
         }
 
-        // ==== Relaciones (pendiente de implementar) ====
+        // ==== Relaciones: AHORA FUNCIONAN ====
+
+        private string? CedulaDeCombo(ComboBox cmb, bool permitirNulo = false)
+        {
+            if (cmb.SelectedIndex < 0) return permitirNulo ? null : "";
+            var txt = cmb.SelectedItem?.ToString() ?? "";
+            if (permitirNulo && txt.StartsWith("(")) return null; // (Ninguno) / (Seleccione)
+            if (txt.StartsWith("(")) return ""; // cuando no se permite nulo
+            // formato "123 - Nombre Apellido"
+            var guion = txt.IndexOf('-');
+            return guion > 0 ? txt.Substring(0, guion).Trim() : txt.Trim();
+        }
+
         private void cmbPersonaActiva_SelectedIndexChanged(object sender, EventArgs e)
         {
+            // Nada especial, mantenemos dibujo actualizado
             ActualizarArbol();
         }
 
         private void btnVincular_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Vincular Padre/Madre → Hijo (pendiente).");
+            var hijo = CedulaDeCombo(cmbPersonaActiva);
+            if (string.IsNullOrWhiteSpace(hijo) || hijo == "(Seleccione)")
+            {
+                MessageBox.Show("Seleccione la persona activa (hijo).");
+                return;
+            }
+            var padre = CedulaDeCombo(cmbPadre, permitirNulo: true);
+            var madre = CedulaDeCombo(cmbMadre, permitirNulo: true);
+
+            // no permitir padre/madre iguales al hijo
+            if (padre == hijo || madre == hijo)
+            {
+                MessageBox.Show("Padre/Madre no pueden ser la misma persona que el hijo.");
+                return;
+            }
+
+            // quitar vínculo previo del mismo hijo (si ya existía)
+            _relaciones.RemoveAll(r => r.HijoId == hijo);
+
+            _relaciones.Add(new ControlArbolGenealogico.Relacion
+            {
+                HijoId = hijo!,
+                PadreId = padre,
+                MadreId = madre
+            });
+
+            ActualizarArbol();
+            MessageBox.Show("Vínculo guardado. El árbol fue actualizado.");
         }
 
         private void btnQuitarVinculo_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Quitar vínculo (pendiente).");
+            var hijo = CedulaDeCombo(cmbPersonaActiva);
+            if (string.IsNullOrWhiteSpace(hijo) || hijo == "(Seleccione)")
+            {
+                MessageBox.Show("Seleccione la persona activa (hijo).");
+                return;
+            }
+            int quitados = _relaciones.RemoveAll(r => r.HijoId == hijo);
+            ActualizarArbol();
+            MessageBox.Show(quitados > 0 ? "Vínculo eliminado." : "No había vínculos para esa persona.");
         }
 
         // ==== Árbol: datos → control ====
@@ -484,11 +562,10 @@ namespace Aplicacion.WinForms.Formularios
                 Id = p.Cedula,
                 Nombre = $"{p.Nombres} {p.Apellidos}",
                 FechaNacimiento = p.FechaNacimiento,
-                RutaFoto = picFoto.ImageLocation // temporal: luego será por persona
+                RutaFoto = p.FotoRuta ?? ResolverRutaRecurso("avatar_gen.png")
             }).ToList();
 
-            var rels = new List<ControlArbolGenealogico.Relacion>(); // aún vacío
-            _ctrlArbol.CargarDatos(personas, rels);
+            _ctrlArbol.CargarDatos(personas, _relaciones);
         }
 
         // ==== Handlers pedidos por el Designer ====
@@ -558,6 +635,7 @@ namespace Aplicacion.WinForms.Formularios
             public string Pais { get; set; } = "";
             public string Ciudad { get; set; } = "";
             public string EdadTexto { get; set; } = "";
+            public string? FotoRuta { get; set; }
         }
     }
 }
