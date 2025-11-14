@@ -17,6 +17,7 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.Button btnAgregar;
         private System.Windows.Forms.Button btnEditar;
         private System.Windows.Forms.Button btnEliminar;
+    private System.Windows.Forms.Button btnMapa;
 
         private System.Windows.Forms.GroupBox grpEditorPersona;
     private System.Windows.Forms.TableLayoutPanel tlpEditor;
@@ -193,6 +194,13 @@ namespace Aplicacion.WinForms.Formularios
             this.btnEditar.Left = 120; this.btnEditar.Top = 8;
             this.btnEliminar.Left = 232; this.btnEliminar.Top = 8;
 
+            // Botón Mapa (abre ventana con mapa interactivo)
+            this.btnMapa = new System.Windows.Forms.Button();
+            this.btnMapa.Text = "Mapa";
+            this.btnMapa.Width = 100;
+            this.btnMapa.Left = 344; this.btnMapa.Top = 8;
+            this.btnMapa.Click += new System.EventHandler(this.btnMapa_Click);
+
             this.btnAgregar.Click += new System.EventHandler(this.btnAgregar_Click);
             this.btnEditar.Click += new System.EventHandler(this.btnEditar_Click);
             this.btnEliminar.Click += new System.EventHandler(this.btnEliminar_Click);
@@ -200,6 +208,7 @@ namespace Aplicacion.WinForms.Formularios
             pnlAcciones.Controls.Add(this.btnAgregar);
             pnlAcciones.Controls.Add(this.btnEditar);
             pnlAcciones.Controls.Add(this.btnEliminar);
+            pnlAcciones.Controls.Add(this.btnMapa);
 
             this.splitPersonas.Panel1.Controls.Add(this.dgvPersonas);
             this.splitPersonas.Panel1.Controls.Add(pnlAcciones);
@@ -225,6 +234,8 @@ namespace Aplicacion.WinForms.Formularios
             this.tlpEditor.Dock = System.Windows.Forms.DockStyle.Top;
             this.tlpEditor.AutoSize = true;
             this.tlpEditor.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            // DIAGNÓSTICO TEMPORAL: mostrar bordes de celdas para identificar contornos en runtime
+            this.tlpEditor.CellBorderStyle = System.Windows.Forms.TableLayoutPanelCellBorderStyle.Single;
             // Fondo del layout (transparente para heredar color del groupbox/panel)
             this.tlpEditor.BackColor = System.Drawing.Color.Transparent;
             this.tlpEditor.RowCount = 11;
@@ -299,10 +310,12 @@ namespace Aplicacion.WinForms.Formularios
             this.pnlEditorScroll.AutoScroll = true;
             this.pnlEditorScroll.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlEditorScroll.Padding = new System.Windows.Forms.Padding(6);
-            // Fondo consistente con el tema oscuro
-            this.pnlEditorScroll.BackColor = System.Drawing.Color.FromArgb(30, 32, 36);
+            // DIAGNÓSTICO TEMPORAL: fondo contrastante para visualizar límites del panel
+            this.pnlEditorScroll.BackColor = System.Drawing.Color.FromArgb(255, 230, 230);
             this.pnlEditorScroll.Controls.Add(this.tlpEditor);
 
+            // DIAGNÓSTICO TEMPORAL: destacar el GroupBox para visualizar su área
+            this.grpEditorPersona.BackColor = System.Drawing.Color.FromArgb(230, 255, 230);
             // Añadir el Panel scroll al groupbox
             this.grpEditorPersona.Controls.Add(this.pnlEditorScroll);
             this.tlpEditor.BringToFront();

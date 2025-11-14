@@ -5,6 +5,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- CefSharp requires a specific platform target (x86 or x64). Set to x64 for desktop builds. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aplicacion\Aplicacion.csproj" />
@@ -16,5 +19,27 @@
     <None Include="Recursos\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CefSharp.WinForms" Version="141.0.110" />
+    <PackageReference Include="CefSharp.Common" Version="141.0.110" />
+    <PackageReference Include="GMap.NET.WindowsForms" Version="1.7.5" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2039.31" />
+  </ItemGroup>
+
+  <!-- Explicit references to the CefSharp assemblies in the local NuGet cache.
+       This helps the compiler resolve CefSharp types when package targets a
+       different framework. For production, prefer publishing with RuntimeIdentifier
+       and letting the native assets be copied automatically. -->
+  <ItemGroup>
+    <Reference Include="CefSharp">
+      <HintPath>$(UserProfile)\.nuget\packages\cefsharp.common\141.0.110\lib\net462\CefSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="CefSharp.Core">
+      <HintPath>$(UserProfile)\.nuget\packages\cefsharp.common\141.0.110\lib\net462\CefSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="CefSharp.WinForms">
+      <HintPath>$(UserProfile)\.nuget\packages\cefsharp.winforms\141.0.110\lib\net462\CefSharp.WinForms.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

@@ -46,6 +46,16 @@ namespace Aplicacion.WinForms.Formularios
         {
             CargarAvatarGenericoSiNoHayFoto();
             CargarMockEnGrillaYCombos();
+            // Exponer el mock al estado de la aplicación para que otras ventanas (p.e. mapa) lo lean
+            Aplicacion.WinForms.Servicios.AppState.Persons.Clear();
+            Aplicacion.WinForms.Servicios.AppState.Persons.AddRange(_mock.Select(p => new Aplicacion.WinForms.Model.MapPerson
+            {
+                Id = p.Cedula,
+                Nombre = $"{p.Nombres} {p.Apellidos}",
+                Latitud = p.Latitud,
+                Longitud = p.Longitud,
+                FotoRuta = p.FotoRuta
+            }));
             CargarRelacionesEjemplo();            // ejemplo visible (Luis+Ana→María)
             PrepararLayoutLadoALado();            // crea Split + árbol a la derecha
             AplicarTemaInicial();                 // tema oscuro a TODO
@@ -688,6 +698,32 @@ namespace Aplicacion.WinForms.Formularios
             catch (Exception ex)
             {
                 MessageBox.Show("No se pudo exportar la imagen.\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // -------- MAPA (ventana con marcadores por persona) --------
+        private void btnMapa_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Abrir mapa embebido usando CefSharp (Chromium). Si Cef no puede inicializarse,
+                // el FormMapaCef internamente hará el mejor intento; en caso de problemas aún
+                // se puede abrir el HTML en el navegador usando MapExporter.
+                var items = _mock.Select(p => new Aplicacion.WinForms.Model.MapPerson
+                {
+                    Id = p.Cedula,
+                    Nombre = $"{p.Nombres} {p.Apellidos}",
+                    Latitud = p.Latitud,
+                    Longitud = p.Longitud,
+                    FotoRuta = p.FotoRuta
+                }).ToList();
+
+                using var f = new FormMapaCef(items);
+                f.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("No se pudo abrir el mapa. " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

@@ -65,7 +65,22 @@ namespace Aplicacion.WinForms.Formularios
         // ===== Handlers que pide el Designer =====
         private void btnPersonas_Click(object? sender, EventArgs e) => AbrirPrincipal("Personas");
         private void btnArbol_Click(object? sender, EventArgs e)    => AbrirPrincipal("Personas"); // el árbol va a la derecha en vivo
-        private void btnMapa_Click(object? sender, EventArgs e)     => MessageBox.Show("Mapa (ventana flotante) aún no disponible.", "Info");
+        private void btnMapa_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Intentar abrir el mapa embebido por defecto usando CefSharp
+                using var f = new FormMapaCef(Aplicacion.WinForms.Servicios.AppState.Persons);
+                f.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                // En caso de fallo, caemos al navegador externo para asegurar que el mapa siempre se muestre
+                try { Aplicacion.WinForms.Servicios.MapExporter.OpenMapInBrowser(Aplicacion.WinForms.Servicios.AppState.Persons); }
+                catch { }
+                MessageBox.Show("No se pudo abrir el mapa: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
         private void btnImportar_Click(object? sender, EventArgs e) => MessageBox.Show("Importar datos: pronto activaremos JSON/CSV.", "Info");
         private void btnExportar_Click(object? sender, EventArgs e) => MessageBox.Show("Exportar datos: pronto activaremos JSON/PNG.", "Info");
         private void btnAcercaDe_Click(object? sender, EventArgs e) => MessageBox.Show("Proyecto 2 — Árbol genealógico\nTEC • 2025", "Acerca de");
