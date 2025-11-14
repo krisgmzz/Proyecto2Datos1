@@ -32,9 +32,11 @@ namespace Aplicacion.WinForms.Formularios
                 if (Cef.IsInitialized != true)
                 {
                     var settings = new CefSettings();
-                    // Dejar que CefSharp resuelva la ruta del subprocess automático cuando
-                    // los artefactos nativos están presentes en el output (al publicar).
-                    settings.LogSeverity = LogSeverity.Disable;
+                    // Ruta para el subprocess: en publish se copiará CefSharp.BrowserSubprocess.exe
+                    // al mismo folder del ejecutable. Aseguramos que si se hace debugging desde
+                    // bin\Debug\... el path relativo funcione.
+                    settings.BrowserSubprocessPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CefSharp.BrowserSubprocess.exe");
+                    settings.CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Proyecto2CefCache");
                     Cef.Initialize(settings, performDependencyCheck: true, browserProcessHandler: null);
 
                     // Asegurarnos de llamar a Shutdown al salir de la app

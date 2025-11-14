@@ -27,19 +27,25 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2039.31" />
   </ItemGroup>
 
-  <!-- Explicit references to the CefSharp assemblies in the local NuGet cache.
-       This helps the compiler resolve CefSharp types when package targets a
-       different framework. For production, prefer publishing with RuntimeIdentifier
-       and letting the native assets be copied automatically. -->
+  <!-- Development-time explicit references to CefSharp assemblies from the NuGet cache
+       ensure the compiler can resolve CefSharp types even if the package targets
+       a different framework. These do not replace the native assets included at publish. -->
   <ItemGroup>
     <Reference Include="CefSharp">
       <HintPath>$(UserProfile)\.nuget\packages\cefsharp.common\141.0.110\lib\net462\CefSharp.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="CefSharp.Core">
       <HintPath>$(UserProfile)\.nuget\packages\cefsharp.common\141.0.110\lib\net462\CefSharp.Core.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="CefSharp.WinForms">
       <HintPath>$(UserProfile)\.nuget\packages\cefsharp.winforms\141.0.110\lib\net462\CefSharp.WinForms.dll</HintPath>
+      <Private>true</Private>
     </Reference>
   </ItemGroup>
+
+  <!-- Remove manual HintPath references: rely on PackageReference + publish RID to copy native assets.
+       Keeping these manual references made compilation work but caused a fragile configuration.
+       For full embed we publish with -r win-x64 so native assets are included. -->
 </Project>
