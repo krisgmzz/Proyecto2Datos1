@@ -19,6 +19,9 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.Button btnEliminar;
 
         private System.Windows.Forms.GroupBox grpEditorPersona;
+    private System.Windows.Forms.TableLayoutPanel tlpEditor;
+    private System.Windows.Forms.FlowLayoutPanel flpEditorButtons;
+    private System.Windows.Forms.Panel pnlEditorScroll;
         private System.Windows.Forms.TextBox txtCedula;
         private System.Windows.Forms.TextBox txtNombres;
         private System.Windows.Forms.TextBox txtApellidos;
@@ -59,7 +62,7 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.Label lblHijos;
         private System.Windows.Forms.Button btnQuitarVinculo;
 
-        // Árbol
+        // ï¿½rbol
         private System.Windows.Forms.Label lblInfoArbol;
         private System.Windows.Forms.ComboBox cmbAncestroRaiz;
         private System.Windows.Forms.Label lblAncestro;
@@ -79,7 +82,7 @@ namespace Aplicacion.WinForms.Formularios
             base.Dispose(disposing);
         }
 
-        #region Código del Diseñador
+        #region Cï¿½digo del Diseï¿½ador
 
         private void InitializeComponent()
         {
@@ -136,7 +139,7 @@ namespace Aplicacion.WinForms.Formularios
             this.lstHijos = new System.Windows.Forms.ListBox();
             this.btnQuitarVinculo = new System.Windows.Forms.Button();
 
-            // ====== Árbol ======
+            // ====== ï¿½rbol ======
             this.lblInfoArbol = new System.Windows.Forms.Label();
             this.lblAncestro = new System.Windows.Forms.Label();
             this.cmbAncestroRaiz = new System.Windows.Forms.ComboBox();
@@ -207,106 +210,104 @@ namespace Aplicacion.WinForms.Formularios
             this.grpEditorPersona.Text = "Editor de persona";
             this.grpEditorPersona.Dock = System.Windows.Forms.DockStyle.Fill;
 
-            // Layout simple con posiciones
-            int x1 = 16, x2 = 140, wTxt = 240, y = 28, dy = 30;
+            // DiseÃ±o responsivo del editor: TableLayoutPanel para campos y FlowLayoutPanel para botones
+            this.tlpEditor = new System.Windows.Forms.TableLayoutPanel();
+            this.flpEditorButtons = new System.Windows.Forms.FlowLayoutPanel();
+            this.pnlEditorScroll = new System.Windows.Forms.Panel();
 
-            this.lblCedula.Text = "Cédula:";
-            this.lblCedula.Left = x1; this.lblCedula.Top = y;
-            this.txtCedula.Left = x2; this.txtCedula.Top = y - 3; this.txtCedula.Width = wTxt;
-            y += dy;
+            // ConfiguraciÃ³n del TableLayoutPanel (3 columnas: etiqueta, entrada, foto)
+            this.tlpEditor.ColumnCount = 3;
+            this.tlpEditor.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 30F));
+            this.tlpEditor.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tlpEditor.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            // Use Top dock with AutoSize so the TableLayoutPanel grows only as needed
+            // and the surrounding scroll panel provides scrolling for overflow.
+            this.tlpEditor.Dock = System.Windows.Forms.DockStyle.Top;
+            this.tlpEditor.AutoSize = true;
+            this.tlpEditor.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            // Fondo del layout (transparente para heredar color del groupbox/panel)
+            this.tlpEditor.BackColor = System.Drawing.Color.Transparent;
+            this.tlpEditor.RowCount = 11;
+            for (int i = 0; i < 10; i++)
+                this.tlpEditor.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            // Ãšltima fila para botones
+            this.tlpEditor.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
 
+            // Ajustar tamaÃ±os y anclas para controles existentes
+            this.lblCedula.Text = "CÃ©dula:";
             this.lblNombres.Text = "Nombres:";
-            this.lblNombres.Left = x1; this.lblNombres.Top = y;
-            this.txtNombres.Left = x2; this.txtNombres.Top = y - 3; this.txtNombres.Width = wTxt;
-            y += dy;
-
             this.lblApellidos.Text = "Apellidos:";
-            this.lblApellidos.Left = x1; this.lblApellidos.Top = y;
-            this.txtApellidos.Left = x2; this.txtApellidos.Top = y - 3; this.txtApellidos.Width = wTxt;
-            y += dy;
-
             this.lblFNac.Text = "Fecha nacimiento:";
-            this.lblFNac.Left = x1; this.lblFNac.Top = y;
-            this.dtpFechaNacimiento.Left = x2; this.dtpFechaNacimiento.Top = y - 3; this.dtpFechaNacimiento.Width = wTxt;
-            y += dy;
-
             this.chkFallecido.Text = "Fallecido";
-            this.chkFallecido.Left = x2; this.chkFallecido.Top = y - 4;
-            this.lblFDef.Text = "Fecha defunción:";
-            this.lblFDef.Left = x1 + 320; this.lblFDef.Top = y;
-            this.dtpFechaDefuncion.Left = x1 + 440; this.dtpFechaDefuncion.Top = y - 3; this.dtpFechaDefuncion.Width = 180;
-            y += dy;
-
+            this.lblFDef.Text = "Fecha defunciÃ³n:";
             this.lblLat.Text = "Latitud:";
-            this.lblLat.Left = x1; this.lblLat.Top = y;
-            this.txtLatitud.Left = x2; this.txtLatitud.Top = y - 3; this.txtLatitud.Width = 100;
             this.lblLon.Text = "Longitud:";
-            this.lblLon.Left = x1 + 220; this.lblLon.Top = y;
-            this.txtLongitud.Left = x1 + 300; this.txtLongitud.Top = y - 3; this.txtLongitud.Width = 100;
-            y += dy;
-
-            this.lblPais.Text = "País:";
-            this.lblPais.Left = x1; this.lblPais.Top = y;
-            this.txtPais.Left = x2; this.txtPais.Top = y - 3; this.txtPais.Width = 160;
+            this.lblPais.Text = "PaÃ­s:";
             this.lblCiudad.Text = "Ciudad:";
-            this.lblCiudad.Left = x1 + 340; this.lblCiudad.Top = y;
-            this.txtCiudad.Left = x1 + 400; this.txtCiudad.Top = y - 3; this.txtCiudad.Width = 160;
-            y += dy;
-
             this.lblFoto.Text = "Foto:";
-            this.lblFoto.Left = x1; this.lblFoto.Top = y;
-            this.picFoto.Left = x2; this.picFoto.Top = y - 2; this.picFoto.Width = 96; this.picFoto.Height = 96;
+
+            // Pic en la tercera columna: tamaÃ±o fijo y zoom
+            this.picFoto.Width = 120; this.picFoto.Height = 120;
             this.picFoto.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.btnSeleccionarFoto.Text = "Seleccionar...";
-            this.btnSeleccionarFoto.Left = x2 + 104; this.btnSeleccionarFoto.Top = y + 32;
-            this.btnSeleccionarFoto.Click += new System.EventHandler(this.btnSeleccionarFoto_Click);
+            this.picFoto.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            // Evitar fondo negro si la imagen no estÃ¡ presente
+            this.picFoto.BackColor = System.Drawing.Color.FromArgb(30, 32, 36);
 
-            this.lblEdadCalculada.Text = "Edad: —";
-            this.lblEdadCalculada.Left = x1 + 340; this.lblEdadCalculada.Top = y + 8;
-
-            // Botones guardar/cancelar
+            // Botones en FlowLayoutPanel, alineados a la derecha
             this.btnGuardarPersona.Text = "Guardar";
             this.btnCancelarPersona.Text = "Cancelar";
-            this.btnGuardarPersona.Width = 100;
-            this.btnCancelarPersona.Width = 100;
-            this.btnGuardarPersona.Left = this.grpEditorPersona.Width - 240;
-            this.btnCancelarPersona.Left = this.grpEditorPersona.Width - 120;
-            this.btnGuardarPersona.Top = this.grpEditorPersona.Height - 60;
-            this.btnCancelarPersona.Top = this.grpEditorPersona.Height - 60;
-            this.btnGuardarPersona.Anchor = (System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right);
-            this.btnCancelarPersona.Anchor = (System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right);
+            this.btnGuardarPersona.Width = 100; this.btnCancelarPersona.Width = 100;
+            this.flpEditorButtons.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
+            this.flpEditorButtons.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flpEditorButtons.Controls.Add(this.btnCancelarPersona);
+            this.flpEditorButtons.Controls.Add(this.btnGuardarPersona);
+            this.flpEditorButtons.Padding = new System.Windows.Forms.Padding(0);
+            this.flpEditorButtons.Margin = new System.Windows.Forms.Padding(0);
 
             this.btnGuardarPersona.Click += new System.EventHandler(this.btnGuardarPersona_Click);
             this.btnCancelarPersona.Click += new System.EventHandler(this.btnCancelarPersona_Click);
 
-            // Agregar controles al groupbox
-            this.grpEditorPersona.Controls.Add(this.lblCedula);
-            this.grpEditorPersona.Controls.Add(this.txtCedula);
-            this.grpEditorPersona.Controls.Add(this.lblNombres);
-            this.grpEditorPersona.Controls.Add(this.txtNombres);
-            this.grpEditorPersona.Controls.Add(this.lblApellidos);
-            this.grpEditorPersona.Controls.Add(this.txtApellidos);
-            this.grpEditorPersona.Controls.Add(this.lblFNac);
-            this.grpEditorPersona.Controls.Add(this.dtpFechaNacimiento);
-            this.grpEditorPersona.Controls.Add(this.chkFallecido);
-            this.grpEditorPersona.Controls.Add(this.lblFDef);
-            this.grpEditorPersona.Controls.Add(this.dtpFechaDefuncion);
-            this.grpEditorPersona.Controls.Add(this.lblLat);
-            this.grpEditorPersona.Controls.Add(this.txtLatitud);
-            this.grpEditorPersona.Controls.Add(this.lblLon);
-            this.grpEditorPersona.Controls.Add(this.txtLongitud);
-            this.grpEditorPersona.Controls.Add(this.lblPais);
-            this.grpEditorPersona.Controls.Add(this.txtPais);
-            this.grpEditorPersona.Controls.Add(this.lblCiudad);
-            this.grpEditorPersona.Controls.Add(this.txtCiudad);
-            this.grpEditorPersona.Controls.Add(this.lblFoto);
-            this.grpEditorPersona.Controls.Add(this.picFoto);
-            this.grpEditorPersona.Controls.Add(this.btnSeleccionarFoto);
-            this.grpEditorPersona.Controls.Add(this.lblEdadCalculada);
-            this.grpEditorPersona.Controls.Add(this.btnGuardarPersona);
-            this.grpEditorPersona.Controls.Add(this.btnCancelarPersona);
+            // AÃ±adir controles al TableLayoutPanel por filas
+            int r = 0;
+            this.tlpEditor.Controls.Add(this.lblCedula, 0, r); this.tlpEditor.Controls.Add(this.txtCedula, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblNombres, 0, r); this.tlpEditor.Controls.Add(this.txtNombres, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblApellidos, 0, r); this.tlpEditor.Controls.Add(this.txtApellidos, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblFNac, 0, r); this.tlpEditor.Controls.Add(this.dtpFechaNacimiento, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.chkFallecido, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblFDef, 0, r); this.tlpEditor.Controls.Add(this.dtpFechaDefuncion, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblLat, 0, r); this.tlpEditor.Controls.Add(this.txtLatitud, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblLon, 0, r); this.tlpEditor.Controls.Add(this.txtLongitud, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblPais, 0, r); this.tlpEditor.Controls.Add(this.txtPais, 1, r); r++;
+            this.tlpEditor.Controls.Add(this.lblCiudad, 0, r); this.tlpEditor.Controls.Add(this.txtCiudad, 1, r); r++;
 
-            // Añadir a la tab Personas
+            // Edad calculada y botones
+            this.tlpEditor.Controls.Add(this.lblEdadCalculada, 0, r);
+            this.tlpEditor.Controls.Add(this.flpEditorButtons, 1, r);
+
+            // AÃ±adir PictureBox en la tercera columna y que ocupe varias filas (excepto la Ãºltima fila de botones)
+            int filasUsadas = r; // picFoto ocuparÃ¡ filas 0..filasUsadas-1
+            this.tlpEditor.Controls.Add(this.picFoto, 2, 0);
+            this.tlpEditor.SetRowSpan(this.picFoto, Math.Max(1, filasUsadas));
+
+            // AÃ±adir botÃ³n Seleccionar Foto en la Ãºltima fila, tercera columna
+            this.btnSeleccionarFoto.Text = "Seleccionar...";
+            this.btnSeleccionarFoto.Width = 120;
+            this.btnSeleccionarFoto.Click += new System.EventHandler(this.btnSeleccionarFoto_Click);
+            this.tlpEditor.Controls.Add(this.btnSeleccionarFoto, 2, r);
+
+            // Encapsular el TableLayout en un Panel con AutoScroll para permitir scroll vertical en ventanas pequeÃ±as
+            this.pnlEditorScroll.AutoScroll = true;
+            this.pnlEditorScroll.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlEditorScroll.Padding = new System.Windows.Forms.Padding(6);
+            // Fondo consistente con el tema oscuro
+            this.pnlEditorScroll.BackColor = System.Drawing.Color.FromArgb(30, 32, 36);
+            this.pnlEditorScroll.Controls.Add(this.tlpEditor);
+
+            // AÃ±adir el Panel scroll al groupbox
+            this.grpEditorPersona.Controls.Add(this.pnlEditorScroll);
+            this.tlpEditor.BringToFront();
+
+            // Aï¿½adir a la tab Personas
             this.tabPersonas.Controls.Add(this.splitPersonas);
             this.splitPersonas.Panel2.Controls.Add(this.grpEditorPersona);
 
@@ -342,7 +343,7 @@ namespace Aplicacion.WinForms.Formularios
             this.lblHijos.Left = 12; this.lblHijos.Top = 168;
             this.lstHijos.Left = 12; this.lstHijos.Top = 190; this.lstHijos.Width = 508; this.lstHijos.Height = 260;
 
-            this.btnQuitarVinculo.Text = "Quitar vínculo seleccionado";
+            this.btnQuitarVinculo.Text = "Quitar vï¿½nculo seleccionado";
             this.btnQuitarVinculo.Left = 12; this.btnQuitarVinculo.Top = 460; this.btnQuitarVinculo.Width = 240;
             this.btnQuitarVinculo.Click += new System.EventHandler(this.btnQuitarVinculo_Click);
 
@@ -358,15 +359,15 @@ namespace Aplicacion.WinForms.Formularios
             this.tabRelaciones.Controls.Add(this.lstHijos);
             this.tabRelaciones.Controls.Add(this.btnQuitarVinculo);
 
-            // =================== TAB ÁRBOL ===================
-            this.tabArbol.Text = "Árbol";
+            // =================== TAB ï¿½RBOL ===================
+            this.tabArbol.Text = "ï¿½rbol";
             this.tabArbol.Padding = new System.Windows.Forms.Padding(12);
 
-            this.lblInfoArbol.Text = "Vista del árbol genealógico.";
+            this.lblInfoArbol.Text = "Vista del ï¿½rbol genealï¿½gico.";
             this.lblInfoArbol.AutoSize = true;
             this.lblInfoArbol.Left = 12; this.lblInfoArbol.Top = 12;
 
-            this.lblAncestro.Text = "Ancestro raíz:";
+            this.lblAncestro.Text = "Ancestro raï¿½z:";
             this.lblAncestro.Left = 12; this.lblAncestro.Top = 44;
             this.cmbAncestroRaiz.Left = 110; this.cmbAncestroRaiz.Top = 40; this.cmbAncestroRaiz.Width = 240;
             this.cmbAncestroRaiz.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -403,7 +404,7 @@ namespace Aplicacion.WinForms.Formularios
             this.MinimumSize = new System.Drawing.Size(960, 600);
             this.Name = "FormPrincipal";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Árbol genealógico — Principal";
+            this.Text = "ï¿½rbol genealï¿½gico ï¿½ Principal";
         }
 
         #endregion
