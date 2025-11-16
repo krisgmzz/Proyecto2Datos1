@@ -78,6 +78,8 @@ namespace Aplicacion.WinForms.Formularios
             HabilitarEdicionPersona(false);
             lblInfoPersonas.Text   = "Use la lista para seleccionar y los botones para agregar/editar/eliminar.";
             lblInfoRelaciones.Text = "Seleccione persona activa y defina Padre/Madre. Evite ciclos.";
+            // Hacemos el texto más explícito para evitar confusiones: la "persona activa" es el hijo
+            lblPersonaActiva.Text = "Persona (hijo):";
             lblInfoArbol.Text      = "El árbol se muestra a la derecha en vivo.";
 
             dgvPersonas.AutoGenerateColumns = true;
@@ -89,8 +91,21 @@ namespace Aplicacion.WinForms.Formularios
             cmbAncestroRaiz.DropDownStyle  = ComboBoxStyle.DropDownList;
 
             dtpFechaDefuncion.Enabled = false;
-        }
 
+            // Botón temporal para cargar fixtures de prueba (útil para depuración del layout)
+            var btnCargarFixture = new Button
+            {
+                Name = "btnCargarFixture",
+                Text = "Cargar fixture",
+                Left = 400,
+                Top = 36,
+                Width = 120,
+                Height = 26
+            };
+            btnCargarFixture.Click += (_, __) => { CargarFixtureComplejo(); MessageBox.Show("Fixture cargado. Revisa la pestaña del árbol.", "Fixture", MessageBoxButtons.OK, MessageBoxIcon.Information); };
+            try { tabRelaciones.Controls.Add(btnCargarFixture); }
+            catch { /* defensivo: si el control no existe en runtime, ignorar */ }
+        }
         // -------- LAYOUT & SPLIT --------
         private void PrepararLayoutLadoALado()
         {
@@ -352,6 +367,47 @@ namespace Aplicacion.WinForms.Formularios
             // Luis (102) + Ana (101) → María (103)
             _relaciones.Clear();
             _relaciones.Add(new ControlArbolGenealogico.Relacion { PadreId = "102", MadreId = "101", HijoId = "103" });
+        }
+
+        // Fixture complejo para pruebas visuales del layout
+        private void CargarFixtureComplejo()
+        {
+            _mock.Clear();
+            _mock.AddRange(new[]
+            {
+                new PersonaFila { Cedula="101", Nombres="Ana",  Apellidos="Rojas", FechaNacimiento=new DateTime(1985,5,2),  Fallecido=false, Latitud=9.93, Longitud=-84.08, Pais="Costa Rica", Ciudad="San José", EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="102", Nombres="Luis", Apellidos="Vega",  FechaNacimiento=new DateTime(1982,11,15), Fallecido=false, Latitud=10.0, Longitud=-84.2,  Pais="Costa Rica", Ciudad="Heredia",  EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="103", Nombres="María",Apellidos="Soto",  FechaNacimiento=new DateTime(2010,3,10), Fallecido=false, Latitud=9.86, Longitud=-83.91, Pais="Costa Rica", Ciudad="Cartago", EdadTexto="", FotoRuta=null },
+
+                new PersonaFila { Cedula="201", Nombres="Carlos",Apellidos="Gomez", FechaNacimiento=new DateTime(1978,1,20), Fallecido=false, Latitud=9.8, Longitud=-84.0, Pais="CR", Ciudad="SJ", EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="202", Nombres="Lucia", Apellidos="Perez", FechaNacimiento=new DateTime(1980,2,2), Fallecido=false, Latitud=9.7, Longitud=-84.1, Pais="CR", Ciudad="Alajuela", EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="203", Nombres="Sofia", Apellidos="Gomez", FechaNacimiento=new DateTime(2005,6,15), Fallecido=false, Latitud=9.9, Longitud=-84.15, Pais="CR", Ciudad="Heredia", EdadTexto="", FotoRuta=null },
+
+                new PersonaFila { Cedula="301", Nombres="Pedro", Apellidos="Lopez", FechaNacimiento=new DateTime(1955,4,1), Fallecido=false, Latitud=10.1, Longitud=-84.3, Pais="CR", Ciudad="Guanacaste", EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="302", Nombres="Marta", Apellidos="Diaz", FechaNacimiento=new DateTime(1957,8,9), Fallecido=false, Latitud=10.2, Longitud=-84.25, Pais="CR", Ciudad="Liberia", EdadTexto="", FotoRuta=null },
+                new PersonaFila { Cedula="303", Nombres="Ana Maria", Apellidos="Lopez", FechaNacimiento=new DateTime(1980,9,3), Fallecido=false, Latitud=10.0, Longitud=-84.2, Pais="CR", Ciudad="Liberia", EdadTexto="", FotoRuta=null },
+            });
+
+            // edades y binding
+            _mock.ForEach(p => p.EdadTexto = CalcularEdadTexto(p.FechaNacimiento, p.Fallecido, p.FechaDefuncion));
+            _bsPersonas.DataSource = null;
+            _bsPersonas.DataSource = _mock;
+
+            // Relaciones variadas
+            _relaciones.Clear();
+            // Luis+Ana -> María
+            _relaciones.Add(new ControlArbolGenealogico.Relacion { PadreId = "102", MadreId = "101", HijoId = "103" });
+            // Carlos+Lucia -> Sofia
+            _relaciones.Add(new ControlArbolGenealogico.Relacion { PadreId = "201", MadreId = "202", HijoId = "203" });
+            // Pedro+Marta -> Ana Maria
+            _relaciones.Add(new ControlArbolGenealogico.Relacion { PadreId = "301", MadreId = "302", HijoId = "303" });
+            // Añadir mezcla: Ana (101) con Carlos (201) -> hijo hipotético 401 (creamos la persona también)
+            _mock.Add(new PersonaFila { Cedula="401", Nombres="Diego", Apellidos="Rojas", FechaNacimiento=new DateTime(2015,7,7), Fallecido=false, Latitud=9.95, Longitud=-84.05, Pais="CR", Ciudad="SJ", EdadTexto="", FotoRuta=null });
+            _relaciones.Add(new ControlArbolGenealogico.Relacion { PadreId = "201", MadreId = "101", HijoId = "401" });
+
+            RefrescarCombosDesdeMock();
+            _bsPersonas.ResetBindings(false);
+            ActualizarArbol();
         }
 
         private void RefrescarCombosDesdeMock()

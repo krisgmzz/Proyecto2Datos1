@@ -104,7 +104,9 @@ namespace Aplicacion.WinForms.Controles
             _personas = personas.ToDictionary(p => p.Id, p => p);
             _relaciones = relaciones?.ToList() ?? new List<Relacion>();
             CalcularLayout();
+            // Forzar repintado inmediato para evitar artefactos visuales
             Invalidate();
+            Refresh();
         }
 
         public void ReiniciarVista()
@@ -127,8 +129,12 @@ namespace Aplicacion.WinForms.Controles
             if (_personas.Count == 0)
                 return;
 
-            // raíz por defecto: la persona más antigua
-            string raiz = _personas.Values.OrderBy(p => p.FechaNacimiento).First().Id;
+            // raíces por defecto: personas que NO son hijas en ninguna relación (ancestros)
+            var tienePadre = new HashSet<string>(_relaciones.Where(r => !string.IsNullOrWhiteSpace(r.HijoId)).Select(r => r.HijoId));
+            var raíces = _personas.Keys.Where(id => !tienePadre.Contains(id)).ToList();
+            // si no encontramos ancestros explícitos, usar la persona más antigua como raíz
+            if (raíces.Count == 0)
+                raíces.Add(_personas.Values.OrderBy(p => p.FechaNacimiento).First().Id);
 
             // hijos por progenitor (padre y madre)
             var hijosPor = new Dictionary<string, List<string>>();
@@ -166,45 +172,171 @@ namespace Aplicacion.WinForms.Controles
                 return;
             }
 
-            // BFS por niveles desde la raíz
-            var niveles = new Dictionary<int, List<string>>();
-            var vis = new HashSet<string> { raiz };
-            var q = new Queue<(string id, int lvl)>();
-            q.Enqueue((raiz, 0));
-
-            while (q.Count > 0)
+            // Calcular niveles (generaciones) garantizando que todo padre esté en un nivel
+            // menor (más arriba) que su hijo. Usamos un algoritmo por capas:
+            // 1) construir mapa de padres por hijo
+            // 2) inicializar niveles: nodos sin padres => 0
+            // 3) iterar: si todos los padres de un hijo tienen nivel conocido, asignar
+            //    level[hijo] = max(level[padres]) + 1
+            // 4) si quedan nodos sin nivel (ciclos u orfandad), asignarles 0 por defecto
+            var padresPor = new Dictionary<string, List<string>>();
+            foreach (var rel in _relaciones)
             {
-                var (id, lvl) = q.Dequeue();
-                if (!_personas.ContainsKey(id)) continue;
-
-                if (!niveles.ContainsKey(lvl)) niveles[lvl] = new List<string>();
-                if (!niveles[lvl].Contains(id)) niveles[lvl].Add(id);
-
-                if (hijosPor.TryGetValue(id, out var hs))
+                if (!string.IsNullOrWhiteSpace(rel.HijoId))
                 {
-                    foreach (var h in hs)
-                    {
-                        if (_personas.ContainsKey(h) && vis.Add(h))
-                            q.Enqueue((h, lvl + 1));
-                    }
+                    if (!padresPor.TryGetValue(rel.HijoId, out var list)) { list = new List<string>(); padresPor[rel.HijoId] = list; }
+                    if (!string.IsNullOrWhiteSpace(rel.PadreId) && _personas.ContainsKey(rel.PadreId) && !list.Contains(rel.PadreId)) list.Add(rel.PadreId!);
+                    if (!string.IsNullOrWhiteSpace(rel.MadreId) && _personas.ContainsKey(rel.MadreId) && !list.Contains(rel.MadreId)) list.Add(rel.MadreId!);
                 }
             }
 
-            // Posicionar por nivel (alineación básica + separación)
+            var nivelesPorNodo = new Dictionary<string, int>();
+            // inicializar todos a -1
+            foreach (var id in _personas.Keys) nivelesPorNodo[id] = -1;
+
+            // nodos sin padres => nivel 0
+            foreach (var id in _personas.Keys)
+            {
+                if (!padresPor.ContainsKey(id) || padresPor[id].Count == 0) nivelesPorNodo[id] = 0;
+            }
+
+            bool cambiado = true;
+            int iter = 0;
+            while (cambiado && iter < 1000)
+            {
+                cambiado = false;
+                iter++;
+                foreach (var id in _personas.Keys)
+                {
+                    if (nivelesPorNodo[id] >= 0) continue;
+                    if (!padresPor.TryGetValue(id, out var padres) || padres.Count == 0)
+                    {
+                        nivelesPorNodo[id] = 0; cambiado = true; continue;
+                    }
+                    // si todos los padres tienen nivel conocido
+                    if (padres.All(p => nivelesPorNodo.ContainsKey(p) && nivelesPorNodo[p] >= 0))
+                    {
+                        int maxPad = padres.Max(p => nivelesPorNodo[p]);
+                        nivelesPorNodo[id] = maxPad + 1;
+                        cambiado = true;
+                    }
+                }
+            }
+            // cualquier nodo aún sin nivel (por ciclos) => asignar 0
+            foreach (var id in _personas.Keys.Where(i => nivelesPorNodo[i] < 0)) nivelesPorNodo[id] = 0;
+
+            // transformar a niveles por entero agrupado
+            var niveles = new Dictionary<int, List<string>>();
+            foreach (var kv in nivelesPorNodo)
+            {
+                if (!niveles.TryGetValue(kv.Value, out var l)) { l = new List<string>(); niveles[kv.Value] = l; }
+                l.Add(kv.Key);
+            }
+
+            // Agrupar parejas (padre+madre) por nivel de forma determinista.
+            // Para cada nivel, primero añadimos las parejas completas (padre, madre)
+            // en el orden que aparezcan en _relaciones, evitando duplicados, y luego
+            // añadimos el resto de individuos ordenados por nombre para estabilidad.
+            foreach (var lvl in niveles.Keys.ToList())
+            {
+                var lista = niveles[lvl];
+                var añadidos = new HashSet<string>();
+                var nueva = new List<string>();
+
+                // añadir parejas encontradas en _relaciones (en orden de relaciones)
+                foreach (var r in _relaciones)
+                {
+                    if (string.IsNullOrWhiteSpace(r.PadreId) || string.IsNullOrWhiteSpace(r.MadreId)) continue;
+                    if (!lista.Contains(r.PadreId) || !lista.Contains(r.MadreId)) continue;
+                    if (!añadidos.Contains(r.PadreId) && !añadidos.Contains(r.MadreId))
+                    {
+                        nueva.Add(r.PadreId!); añadidos.Add(r.PadreId!);
+                        nueva.Add(r.MadreId!); añadidos.Add(r.MadreId!);
+                    }
+                }
+
+                // añadir restantes (ordenados por nombre para reproducibilidad)
+                var restantes = lista.Where(id => !añadidos.Contains(id)).OrderBy(id => _personas.ContainsKey(id) ? _personas[id].Nombre : id);
+                foreach (var id in restantes)
+                {
+                    nueva.Add(id);
+                    añadidos.Add(id);
+                }
+
+                niveles[lvl] = nueva;
+            }
+
+            // Posicionar por nivel (alineación básica + separación adaptativa)
             float yNivel = _margenY;
             foreach (var kv in niveles.OrderBy(k => k.Key))
             {
                 var ids = kv.Value;
-                float anchoFila = ids.Count * (2 * _radio) + (ids.Count - 1) * _margenX;
+
+                // ancho disponible de dibujo (respetando margen lateral)
+                float availableWidth = Math.Max(100f, ClientSize.Width / _zoom - 2f * _margenX);
+                int n = Math.Max(1, ids.Count);
+
+                // parámetros mínimos
+                float minSpacing = 8f;
+                float maxRadio = _radio;
+
+                // calcular el mejor spacing para que todo quepa; si no cabe, reducir radio
+                float totalNodeWidth = n * (2f * maxRadio);
+                float spacing = _margenX;
+                if (totalNodeWidth + (n - 1) * spacing > availableWidth)
+                {
+                    // recomputar spacing para ajustar dentro del ancho disponible
+                    spacing = (availableWidth - totalNodeWidth) / Math.Max(1, n - 1);
+                    if (spacing < minSpacing)
+                    {
+                        // reducir radio para que quepa con minSpacing
+                        spacing = minSpacing;
+                        float neededWidthForMinSpacing = n * (2f * maxRadio) + (n - 1) * spacing;
+                        if (neededWidthForMinSpacing > availableWidth)
+                        {
+                            // nuevo radio máximo que permite caber
+                            float computedRadio = (availableWidth - (n - 1) * spacing) / (2f * n);
+                            maxRadio = Math.Max(12f, computedRadio);
+                        }
+                    }
+                }
+
+                // calcular ancho final de fila y punto de inicio centrado
+                float anchoFila = n * (2f * maxRadio) + (n - 1) * spacing;
                 float xInicio = Math.Max(_margenX, (ClientSize.Width / _zoom - anchoFila) / 2f);
                 float xCursor = xInicio;
 
                 foreach (var id in ids)
                 {
                     _pos[id] = new PointF(xCursor, yNivel);
-                    xCursor += 2 * _radio + _margenX;
+                    xCursor += 2f * maxRadio + spacing;
                 }
-                yNivel += 2 * _radio + _margenY;
+                yNivel += 2f * maxRadio + _margenY;
+            }
+
+            // Ajustar hijos para centrar debajo del conector de pareja cuando ambos padres están en el mismo nivel
+            foreach (var r in _relaciones)
+            {
+                if (string.IsNullOrWhiteSpace(r.PadreId) || string.IsNullOrWhiteSpace(r.MadreId) || string.IsNullOrWhiteSpace(r.HijoId)) continue;
+                if (!_pos.ContainsKey(r.PadreId) || !_pos.ContainsKey(r.MadreId) || !_pos.ContainsKey(r.HijoId)) continue;
+
+                // obtener niveles numéricos: si no existen, saltar
+                if (!nivelesPorNodo.TryGetValue(r.PadreId, out var lvlPad) || !nivelesPorNodo.TryGetValue(r.MadreId, out var lvlMad) || !nivelesPorNodo.TryGetValue(r.HijoId, out var lvlHij)) continue;
+
+                // buscamos cuando ambos padres están en el mismo nivel y el hijo está exactamente en el siguiente nivel
+                if (lvlPad == lvlMad && lvlHij == lvlPad + 1)
+                {
+                    var pPadre = _pos[r.PadreId!];
+                    var pMadre = _pos[r.MadreId!];
+                    var cPadre = new PointF(pPadre.X + _radio, pPadre.Y + _radio);
+                    var cMadre = new PointF(pMadre.X + _radio, pMadre.Y + _radio);
+                    var pairCenter = new PointF((cPadre.X + cMadre.X) / 2f, (cPadre.Y + cMadre.Y) / 2f);
+
+                    // colocar hijo centrado respecto al pairCenter
+                    var posicionHijo = _pos[r.HijoId];
+                    float nuevoX = pairCenter.X - _radio; // top-left x para que el centro del hijo coincida
+                    _pos[r.HijoId] = new PointF(nuevoX, posicionHijo.Y);
+                }
             }
         }
 
@@ -231,12 +363,44 @@ namespace Aplicacion.WinForms.Controles
             using var brushTexto = new SolidBrush(colTexto);
 
             // Conexiones (Padre/Madre → Hijo)
+            // Dibujamos parejas conectoras: si ambos padres existen y están posicionados, dibujamos
+            // una pequeña "barra" (nodo de pareja) entre ellos y una única línea desde esa barra al hijo.
             foreach (var r in _relaciones)
             {
-                if (!string.IsNullOrWhiteSpace(r.PadreId))
-                    DibujarLinea(r.PadreId!, r.HijoId, g, penLinea);
-                if (!string.IsNullOrWhiteSpace(r.MadreId))
-                    DibujarLinea(r.MadreId!, r.HijoId, g, penLinea);
+                bool tienePadre = !string.IsNullOrWhiteSpace(r.PadreId) && _pos.ContainsKey(r.PadreId!);
+                bool tieneMadre = !string.IsNullOrWhiteSpace(r.MadreId) && _pos.ContainsKey(r.MadreId!);
+                bool tieneHijo = !string.IsNullOrWhiteSpace(r.HijoId) && _pos.ContainsKey(r.HijoId);
+
+                if (tienePadre && tieneMadre && tieneHijo)
+                {
+                    var pPadre = _pos[r.PadreId!];
+                    var pMadre = _pos[r.MadreId!];
+                    var pHijo = _pos[r.HijoId];
+                    var cPadre = new PointF(pPadre.X + _radio, pPadre.Y + _radio);
+                    var cMadre = new PointF(pMadre.X + _radio, pMadre.Y + _radio);
+                    var cHijo = new PointF(pHijo.X + _radio, pHijo.Y + _radio);
+
+                    // Punto del conector: punto medio horizontal entre padres, un poco más abajo
+                    var pair = new PointF((cPadre.X + cMadre.X) / 2f, Math.Max(cPadre.Y, cMadre.Y) + 8f);
+
+                    // líneas padres -> conector (ligeramente curvadas)
+                    DibujarLineaCurva(cPadre, pair, g, penLinea);
+                    DibujarLineaCurva(cMadre, pair, g, penLinea);
+
+                    // dibujar la barra/rectángulo del conector
+                    DibujarNodoPareja(pair, g, penBorde, penLinea);
+
+                    // línea conector -> hijo (curva suave)
+                    DibujarLineaDesdePunto(pair, r.HijoId, g, penLinea);
+                }
+                else
+                {
+                    // caso estándar: uno de los padres o falta posicionamiento
+                    if (tienePadre && tieneHijo)
+                        DibujarLinea(r.PadreId!, r.HijoId, g, penLinea);
+                    if (tieneMadre && tieneHijo)
+                        DibujarLinea(r.MadreId!, r.HijoId, g, penLinea);
+                }
             }
 
             // Nodos
@@ -251,6 +415,39 @@ namespace Aplicacion.WinForms.Controles
             var c1 = new PointF(p1.X + _radio, p1.Y + _radio);
             var c2 = new PointF(p2.X + _radio, p2.Y + _radio);
             // pequeña curva suavizada
+            var mid = new PointF((c1.X + c2.X) / 2f, (c1.Y + c2.Y) / 2f - 20f);
+            using var path = new GraphicsPath();
+            path.AddBezier(c1, new PointF(mid.X, c1.Y), new PointF(mid.X, c2.Y), c2);
+            g.DrawPath(pen, path);
+        }
+
+        private void DibujarLineaCurva(PointF c1, PointF c2, Graphics g, Pen pen)
+        {
+            // curva suave desde c1 hasta c2 (usada para padres -> conector)
+            var ctrlX = (c1.X + c2.X) / 2f;
+            var ctrl1 = new PointF(ctrlX, c1.Y);
+            var ctrl2 = new PointF(ctrlX, c2.Y);
+            using var path = new GraphicsPath();
+            path.AddBezier(c1, ctrl1, ctrl2, c2);
+            g.DrawPath(pen, path);
+        }
+
+        private void DibujarNodoPareja(PointF center, Graphics g, Pen penBorde, Pen penLinea)
+        {
+            // dibuja una pequeña barra horizontal centrada en 'center'
+            float w = _radio * 0.9f;
+            float h = 6f;
+            var rect = new RectangleF(center.X - w / 2f, center.Y - h / 2f, w, h);
+            using var brush = new SolidBrush(penLinea.Color);
+            g.FillRectangle(brush, rect);
+            g.DrawRectangle(penBorde, rect.X, rect.Y, rect.Width, rect.Height);
+        }
+
+        private void DibujarLineaDesdePunto(PointF c1, string idB, Graphics g, Pen pen)
+        {
+            if (!_pos.TryGetValue(idB, out var p2)) return;
+            var c2 = new PointF(p2.X + _radio, p2.Y + _radio);
+            // pequeña curva suavizada desde punto hasta el centro del nodo B
             var mid = new PointF((c1.X + c2.X) / 2f, (c1.Y + c2.Y) / 2f - 20f);
             using var path = new GraphicsPath();
             path.AddBezier(c1, new PointF(mid.X, c1.Y), new PointF(mid.X, c2.Y), c2);
