@@ -46,6 +46,9 @@ namespace Aplicacion.WinForms.Formularios
         {
             CargarAvatarGenericoSiNoHayFoto();
             CargarMockEnGrillaYCombos();
+
+            _relaciones.Clear();
+
             // Exponer el mock al estado de la aplicación para que otras ventanas (p.e. mapa) lo lean
             Aplicacion.WinForms.Servicios.AppState.Persons.Clear();
             Aplicacion.WinForms.Servicios.AppState.Persons.AddRange(_mock.Select(p => new Aplicacion.WinForms.Model.MapPerson
@@ -56,7 +59,7 @@ namespace Aplicacion.WinForms.Formularios
                 Longitud = p.Longitud,
                 FotoRuta = p.FotoRuta
             }));
-            CargarRelacionesEjemplo();            // ejemplo visible (Luis+Ana→María)
+            //CargarRelacionesEjemplo();            // ejemplo visible (Luis+Ana→María)
             PrepararLayoutLadoALado();            // crea Split + árbol a la derecha
             AplicarTemaInicial();                 // tema oscuro a TODO
             ActualizarEdadCalculada();
@@ -685,8 +688,72 @@ namespace Aplicacion.WinForms.Formularios
             if (padre == hijo || madre == hijo)
             { MessageBox.Show("Padre/Madre no pueden ser la misma persona que el hijo."); return; }
 
-            _relaciones.RemoveAll(r => r.HijoId == hijo);
-            _relaciones.Add(new ControlArbolGenealogico.Relacion { HijoId = hijo!, PadreId = padre, MadreId = madre });
+            bool Ciclo(string? padre, string? madre, string hijo)
+            {
+                // un hijo NO puede ser padre ni madre de sí mismo
+                if (padre == hijo || madre == hijo) return true;
+
+                // un padre no puede ser hijo del hijo (evita ciclos)
+                if (_relaciones.Any(r => r.HijoId == padre && (r.PadreId == hijo || r.MadreId == hijo)))
+                    return true;
+                if (_relaciones.Any(r => r.HijoId == madre && (r.PadreId == hijo || r.MadreId == hijo)))
+                    return true;
+
+                return false;
+            }
+
+            if (Ciclo(padre, madre, hijo))
+            {
+                MessageBox.Show("Ese vínculo crea un ciclo imposible en el árbol.");
+                return;
+            }
+
+            // Verificar si el padre ya tiene pareja conocida en otro vínculo
+            if (padre != null)
+            {
+                var parejaExistente = _relaciones
+                    .Where(r => r.PadreId == padre || r.MadreId == padre)
+                    .Select(r => r.PadreId == padre ? r.MadreId : r.PadreId)
+                    .FirstOrDefault();
+
+                if (parejaExistente != null && madre != null && madre != parejaExistente)
+                {
+                    MessageBox.Show($"El padre ya tiene registrada una pareja diferente: {parejaExistente}");
+                    return;
+                }
+            }
+
+            // Verificar si la madre ya tiene pareja conocida en otro vínculo
+            if (madre != null)
+            {
+                var parejaExistente = _relaciones
+                    .Where(r => r.PadreId == madre || r.MadreId == madre)
+                    .Select(r => r.PadreId == madre ? r.MadreId : r.PadreId)
+                    .FirstOrDefault();
+
+                if (parejaExistente != null && padre != null && padre != parejaExistente)
+                {
+                    MessageBox.Show($"La madre ya tiene registrado un padre diferente: {parejaExistente}");
+                    return;
+                }
+            }
+
+            var existente = _relaciones.FirstOrDefault(r => r.HijoId == hijo);
+            if (existente != null)
+            {
+                existente.PadreId = padre;
+                existente.MadreId = madre;
+            }
+            else
+            {
+                // Crear uno nuevo si no existía
+                _relaciones.Add(new ControlArbolGenealogico.Relacion
+                {
+                    HijoId = hijo!,
+                    PadreId = padre,
+                    MadreId = madre
+                });
+            }
 
             ActualizarArbol();
             MessageBox.Show("Vínculo guardado. El árbol fue actualizado.");

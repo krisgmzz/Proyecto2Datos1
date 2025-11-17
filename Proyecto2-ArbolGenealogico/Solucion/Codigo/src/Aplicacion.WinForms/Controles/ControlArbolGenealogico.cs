@@ -225,6 +225,26 @@ namespace Aplicacion.WinForms.Controles
             // cualquier nodo aún sin nivel (por ciclos) => asignar 0
             foreach (var id in _personas.Keys.Where(i => nivelesPorNodo[i] < 0)) nivelesPorNodo[id] = 0;
 
+            // Forzar que las parejas estén en el mismo nivel
+            foreach (var r in _relaciones)
+            {
+                if (!string.IsNullOrWhiteSpace(r.PadreId) &&
+                    !string.IsNullOrWhiteSpace(r.MadreId))
+                {
+                    var p1 = r.PadreId!;
+                    var p2 = r.MadreId!;
+
+                    if (nivelesPorNodo.ContainsKey(p1) && nivelesPorNodo.ContainsKey(p2))
+                    {
+                        // usar el mínimo nivel (la pareja queda donde esté el más alto)
+                        int nivelPareja = Math.Max(nivelesPorNodo[p1], nivelesPorNodo[p2]);
+                        nivelesPorNodo[p1] = nivelPareja;
+                        nivelesPorNodo[p2] = nivelPareja;
+                    }
+                }
+            }
+
+
             // transformar a niveles por entero agrupado
             var niveles = new Dictionary<int, List<string>>();
             foreach (var kv in nivelesPorNodo)
@@ -237,26 +257,43 @@ namespace Aplicacion.WinForms.Controles
             // Para cada nivel, primero añadimos las parejas completas (padre, madre)
             // en el orden que aparezcan en _relaciones, evitando duplicados, y luego
             // añadimos el resto de individuos ordenados por nombre para estabilidad.
+            // Crear lista de parejas detectadas
+
+            var parejas = new List<(string A, string B)>();
+            foreach (var r in _relaciones)
+            {
+                if (!string.IsNullOrWhiteSpace(r.MadreId) &&
+                    !string.IsNullOrWhiteSpace(r.PadreId))
+                {
+                    parejas.Add((r.PadreId!, r.MadreId!));
+                }
+            }
+
+            //Agrupar parejas
             foreach (var lvl in niveles.Keys.ToList())
             {
                 var lista = niveles[lvl];
                 var añadidos = new HashSet<string>();
                 var nueva = new List<string>();
 
-                // añadir parejas encontradas en _relaciones (en orden de relaciones)
-                foreach (var r in _relaciones)
+                foreach (var (A, B) in parejas)
                 {
-                    if (string.IsNullOrWhiteSpace(r.PadreId) || string.IsNullOrWhiteSpace(r.MadreId)) continue;
-                    if (!lista.Contains(r.PadreId) || !lista.Contains(r.MadreId)) continue;
-                    if (!añadidos.Contains(r.PadreId) && !añadidos.Contains(r.MadreId))
+                    if (lista.Contains(A) && lista.Contains(B))
                     {
-                        nueva.Add(r.PadreId!); añadidos.Add(r.PadreId!);
-                        nueva.Add(r.MadreId!); añadidos.Add(r.MadreId!);
+                        if (!añadidos.Contains(A) && !añadidos.Contains(B))
+                        {
+                            nueva.Add(A);
+                            nueva.Add(B);
+                            añadidos.Add(A);
+                            añadidos.Add(B);
+                        }
                     }
                 }
 
-                // añadir restantes (ordenados por nombre para reproducibilidad)
-                var restantes = lista.Where(id => !añadidos.Contains(id)).OrderBy(id => _personas.ContainsKey(id) ? _personas[id].Nombre : id);
+               
+                var restantes = lista.Where(id => !añadidos.Contains(id))
+                                     .OrderBy(id => _personas[id].Nombre);
+
                 foreach (var id in restantes)
                 {
                     nueva.Add(id);
@@ -314,28 +351,66 @@ namespace Aplicacion.WinForms.Controles
                 yNivel += 2f * maxRadio + _margenY;
             }
 
-            // Ajustar hijos para centrar debajo del conector de pareja cuando ambos padres están en el mismo nivel
+            // Ajustar hijos de parejas para que se alineen horizontalmente
+            // centrados debajo del punto medio entre los padres.
+            var hijosPorPareja = new Dictionary<(string padre, string madre), List<string>>();
+
             foreach (var r in _relaciones)
             {
-                if (string.IsNullOrWhiteSpace(r.PadreId) || string.IsNullOrWhiteSpace(r.MadreId) || string.IsNullOrWhiteSpace(r.HijoId)) continue;
-                if (!_pos.ContainsKey(r.PadreId) || !_pos.ContainsKey(r.MadreId) || !_pos.ContainsKey(r.HijoId)) continue;
+                if (string.IsNullOrWhiteSpace(r.PadreId) ||
+                    string.IsNullOrWhiteSpace(r.MadreId) ||
+                    string.IsNullOrWhiteSpace(r.HijoId))
+                    continue;
 
-                // obtener niveles numéricos: si no existen, saltar
-                if (!nivelesPorNodo.TryGetValue(r.PadreId, out var lvlPad) || !nivelesPorNodo.TryGetValue(r.MadreId, out var lvlMad) || !nivelesPorNodo.TryGetValue(r.HijoId, out var lvlHij)) continue;
+                var key = (r.PadreId!, r.MadreId!);
 
-                // buscamos cuando ambos padres están en el mismo nivel y el hijo está exactamente en el siguiente nivel
-                if (lvlPad == lvlMad && lvlHij == lvlPad + 1)
+                if (!hijosPorPareja.TryGetValue(key, out var lista))
                 {
-                    var pPadre = _pos[r.PadreId!];
-                    var pMadre = _pos[r.MadreId!];
-                    var cPadre = new PointF(pPadre.X + _radio, pPadre.Y + _radio);
-                    var cMadre = new PointF(pMadre.X + _radio, pMadre.Y + _radio);
-                    var pairCenter = new PointF((cPadre.X + cMadre.X) / 2f, (cPadre.Y + cMadre.Y) / 2f);
+                    lista = new List<string>();
+                    hijosPorPareja[key] = lista;
+                }
 
-                    // colocar hijo centrado respecto al pairCenter
-                    var posicionHijo = _pos[r.HijoId];
-                    float nuevoX = pairCenter.X - _radio; // top-left x para que el centro del hijo coincida
-                    _pos[r.HijoId] = new PointF(nuevoX, posicionHijo.Y);
+                if (!lista.Contains(r.HijoId))
+                    lista.Add(r.HijoId!);
+            }
+
+            // Ahora procesamos pareja por pareja
+            foreach (var kv in hijosPorPareja)
+            {
+                var padreId = kv.Key.padre;
+                var madreId = kv.Key.madre;
+                var hijos = kv.Value;
+
+                if (!_pos.ContainsKey(padreId) || !_pos.ContainsKey(madreId))
+                    continue;
+
+                var pPadre = _pos[padreId];
+                var pMadre = _pos[madreId];
+
+                var cPadre = new PointF(pPadre.X + _radio, pPadre.Y + _radio);
+                var cMadre = new PointF(pMadre.X + _radio, pMadre.Y + _radio);
+                var pairCenter = new PointF((cPadre.X + cMadre.X) / 2f, (cPadre.Y + cMadre.Y) / 2f);
+
+                // ------------------------------------------------------------------
+                //  Alinear HERMANOS
+                // ------------------------------------------------------------------
+
+                int n = hijos.Count;
+                if (n == 0) continue;
+
+                float spacing = 12f;                 // separación mínima
+                float anchoTotal = n * (2 * _radio) + (n - 1) * spacing;
+                float xInicio = pairCenter.X - anchoTotal / 2f;   // centrar respecto al punto medio de la pareja
+                float yHijo = _pos[hijos[0]].Y;
+
+                float xCursor = xInicio;
+
+                foreach (var hijoId in hijos)
+                {
+                    if (!_pos.ContainsKey(hijoId)) continue;
+
+                    _pos[hijoId] = new PointF(xCursor, yHijo);
+                    xCursor += (2 * _radio) + spacing;
                 }
             }
         }
@@ -381,7 +456,11 @@ namespace Aplicacion.WinForms.Controles
                     var cHijo = new PointF(pHijo.X + _radio, pHijo.Y + _radio);
 
                     // Punto del conector: punto medio horizontal entre padres, un poco más abajo
-                    var pair = new PointF((cPadre.X + cMadre.X) / 2f, Math.Max(cPadre.Y, cMadre.Y) + 8f);
+                    var pair = new PointF(
+                        (cPadre.X + cMadre.X) / 2f,
+                        Math.Max(cPadre.Y, cMadre.Y) + (_radio * 0.9f)
+                    );
+
 
                     // líneas padres -> conector (ligeramente curvadas)
                     DibujarLineaCurva(cPadre, pair, g, penLinea);
@@ -423,14 +502,17 @@ namespace Aplicacion.WinForms.Controles
 
         private void DibujarLineaCurva(PointF c1, PointF c2, Graphics g, Pen pen)
         {
-            // curva suave desde c1 hasta c2 (usada para padres -> conector)
-            var ctrlX = (c1.X + c2.X) / 2f;
-            var ctrl1 = new PointF(ctrlX, c1.Y);
-            var ctrl2 = new PointF(ctrlX, c2.Y);
+            float dy = Math.Abs(c2.Y - c1.Y);
+            float ctrlOffset = Math.Max(20f, dy * 0.6f);
+
+            var ctrl1 = new PointF(c1.X, c1.Y + ctrlOffset);
+            var ctrl2 = new PointF(c2.X, c2.Y - ctrlOffset);
+
             using var path = new GraphicsPath();
             path.AddBezier(c1, ctrl1, ctrl2, c2);
             g.DrawPath(pen, path);
         }
+
 
         private void DibujarNodoPareja(PointF center, Graphics g, Pen penBorde, Pen penLinea)
         {
