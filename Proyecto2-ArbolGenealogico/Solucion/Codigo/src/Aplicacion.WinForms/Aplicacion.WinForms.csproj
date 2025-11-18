@@ -8,6 +8,10 @@
     <!-- CefSharp requires a specific platform target (x86 or x64). Set to x64 for desktop builds. -->
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- Suprimir advertencias de paquetes restaurados para paquetes que no tienen binarios net8 publicados
+         (ej. CefSharp/GMap.NET). Estos paquetes siguen siendo usados en tiempo de diseño/compilación
+         y en publicación se deben incluir los assets nativos mediante publish con -r win-x64. -->
+    <NoWarn>NU1701;NU1603</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aplicacion\Aplicacion.csproj" />
@@ -24,7 +28,8 @@
     <PackageReference Include="CefSharp.WinForms" Version="141.0.110" />
     <PackageReference Include="CefSharp.Common" Version="141.0.110" />
     <PackageReference Include="GMap.NET.WindowsForms" Version="1.7.5" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2039.31" />
+  <!-- Actualizar WebView2 a la versión resuelta por NuGet para evitar NU1603 al restaurar -->
+  <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2045.28" />
   </ItemGroup>
 
   <!-- Development-time explicit references to CefSharp assemblies from the NuGet cache
