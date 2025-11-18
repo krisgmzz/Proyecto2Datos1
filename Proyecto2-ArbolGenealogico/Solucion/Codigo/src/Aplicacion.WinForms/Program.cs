@@ -17,6 +17,15 @@ namespace Aplicacion.WinForms
 
             try
             {
+                // Intentar cargar proyecto guardado automáticamente antes de mostrar UI
+                try { Aplicacion.WinForms.Servicios.AppState.TryLoadAutosave(); } catch { }
+
+                // Registrar guardado automático al salir de la aplicación
+                Application.ApplicationExit += (s, e) =>
+                {
+                    try { Aplicacion.WinForms.Servicios.AppState.SaveAutosave(); } catch { }
+                };
+
                 // Pantalla inicial (menú principal)
                 Application.Run(new FormInicio());
             }

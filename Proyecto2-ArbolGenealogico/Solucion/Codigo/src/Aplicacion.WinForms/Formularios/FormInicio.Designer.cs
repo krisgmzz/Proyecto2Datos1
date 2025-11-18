@@ -103,9 +103,9 @@ namespace Aplicacion.WinForms.Formularios
             this.btnPersonas.Name = "btnPersonas";
             this.btnPersonas.Size = new System.Drawing.Size(220, 60);
             this.btnPersonas.TabIndex = 0;
-            this.btnPersonas.Text = "Personas";
+            this.btnPersonas.Text = "Nueva familia";
             this.btnPersonas.UseVisualStyleBackColor = true;
-            this.btnPersonas.Click += new System.EventHandler(this.btnPersonas_Click);
+            this.btnPersonas.Click += new System.EventHandler(this.btnNuevaFamilia_Click);
             // 
             // btnArbol
             // 
@@ -114,9 +114,9 @@ namespace Aplicacion.WinForms.Formularios
             this.btnArbol.Name = "btnArbol";
             this.btnArbol.Size = new System.Drawing.Size(220, 60);
             this.btnArbol.TabIndex = 1;
-            this.btnArbol.Text = "Árbol";
+            this.btnArbol.Text = "Cargar familia...";
             this.btnArbol.UseVisualStyleBackColor = true;
-            this.btnArbol.Click += new System.EventHandler(this.btnArbol_Click);
+            this.btnArbol.Click += new System.EventHandler(this.btnCargarFamilia_Click);
             // 
             // btnMapa
             // 

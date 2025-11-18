@@ -30,5 +30,10 @@ namespace Aplicacion.WinForms.Model
     {
         public List<PersonData> Persons { get; set; } = new List<PersonData>();
         public List<RelationshipData> Relaciones { get; set; } = new List<RelationshipData>();
+
+        // Metadatos del proyecto
+        public string? Name { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime LastModifiedAt { get; set; }
     }
 }

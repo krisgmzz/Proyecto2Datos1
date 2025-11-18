@@ -131,7 +131,17 @@ namespace Aplicacion.WinForms.Formularios
                 HijoId = r.HijoId
             }));
 
+            // Preserve metadata (Name / CreatedAt) if there was a project already loaded
+            var existing = Aplicacion.WinForms.Servicios.AppState.Project;
+            if (existing != null)
+            {
+                proj.Name = existing.Name;
+                proj.CreatedAt = existing.CreatedAt;
+                proj.LastModifiedAt = DateTime.Now;
+            }
+
             Aplicacion.WinForms.Servicios.AppState.Project = proj;
+            try { Aplicacion.WinForms.Servicios.AppState.SaveAutosave(); } catch { }
         }
 
         private void SeleccionarPestaña(string nombre)
