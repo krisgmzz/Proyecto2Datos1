@@ -1,0 +1,23 @@
+# Enforce UTF-8 encoding for source files to avoid corrupted accented characters
+# Use working-tree-encoding so editors and Git clients normalize files on checkout/commit.
+
+# C# sources and designers
+*.cs     text working-tree-encoding=UTF-8
+*.designer.cs text working-tree-encoding=UTF-8
+
+# Resource files
+*.resx   text working-tree-encoding=UTF-8
+
+# Project and solution files
+*.csproj text working-tree-encoding=UTF-8
+*.sln    text working-tree-encoding=UTF-8
+
+# PowerShell / scripts / markdown
+*.ps1    text working-tree-encoding=UTF-8
+*.md     text working-tree-encoding=UTF-8
+
+# Generic: prefer text and normalize line endings for common text files
+* text=auto
+
+# Ensure BOM isn't required — editors can use UTF-8 without BOM
+# If you want explicit CRLF on Windows, Git core.autocrlf can manage it; we keep text=auto here.
