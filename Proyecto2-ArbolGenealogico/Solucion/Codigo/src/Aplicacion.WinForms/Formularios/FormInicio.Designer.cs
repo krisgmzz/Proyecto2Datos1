@@ -3,7 +3,7 @@ namespace Aplicacion.WinForms.Formularios
     partial class FormInicio
     {
         /// <summary>
-        /// Variable del diseÒador requerida.
+    /// Variable del dise√±ador requerida.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
@@ -15,6 +15,7 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.Button btnImportar;
         private System.Windows.Forms.Button btnExportar;
         private System.Windows.Forms.Button btnAcercaDe;
+    private System.Windows.Forms.Button btnSalir;
         private System.Windows.Forms.Label lblEstado;
         private System.Windows.Forms.Label lblRutaDatos;
         private System.Windows.Forms.Panel panelBotones;
@@ -33,11 +34,11 @@ namespace Aplicacion.WinForms.Formularios
             base.Dispose(disposing);
         }
 
-        #region CÛdigo generado por el DiseÒador de Windows Forms
+    #region C√≥digo generado por el Dise√±ador de Windows Forms
 
         /// <summary>
-        /// MÈtodo necesario para admitir el DiseÒador. No se puede modificar
-        /// el contenido de este mÈtodo con el editor de cÛdigo.
+    /// M√©todo necesario para admitir el Dise√±ador. No se puede modificar
+    /// el contenido de este m√©todo con el editor de c√≥digo.
         /// </summary>
         private void InitializeComponent()
         {
@@ -65,7 +66,7 @@ namespace Aplicacion.WinForms.Formularios
             this.lblTitulo.Name = "lblTitulo";
             this.lblTitulo.Size = new System.Drawing.Size(760, 48);
             this.lblTitulo.TabIndex = 0;
-            this.lblTitulo.Text = "Proyecto 2 ó ¡rbol genealÛgico";
+            this.lblTitulo.Text = "Proyecto 2 ‚Äî √Årbol geneal√≥gico";
             this.lblTitulo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // panelBotones
@@ -79,6 +80,17 @@ namespace Aplicacion.WinForms.Formularios
             this.panelBotones.Controls.Add(this.btnImportar);
             this.panelBotones.Controls.Add(this.btnExportar);
             this.panelBotones.Controls.Add(this.btnAcercaDe);
+            // Nuevo bot√≥n Salir
+            this.btnSalir = new System.Windows.Forms.Button();
+            this.btnSalir.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.btnSalir.Location = new System.Drawing.Point(520, 110 + 80);
+            this.btnSalir.Name = "btnSalir";
+            this.btnSalir.Size = new System.Drawing.Size(220, 60);
+            this.btnSalir.TabIndex = 6;
+            this.btnSalir.Text = "Salir";
+            this.btnSalir.UseVisualStyleBackColor = true;
+            this.btnSalir.Click += new System.EventHandler(this.btnSalir_Click);
+            this.panelBotones.Controls.Add(this.btnSalir);
             this.panelBotones.Location = new System.Drawing.Point(12, 70);
             this.panelBotones.Name = "panelBotones";
             this.panelBotones.Size = new System.Drawing.Size(760, 360);
@@ -102,7 +114,7 @@ namespace Aplicacion.WinForms.Formularios
             this.btnArbol.Name = "btnArbol";
             this.btnArbol.Size = new System.Drawing.Size(220, 60);
             this.btnArbol.TabIndex = 1;
-            this.btnArbol.Text = "¡rbol";
+            this.btnArbol.Text = "√Årbol";
             this.btnArbol.UseVisualStyleBackColor = true;
             this.btnArbol.Click += new System.EventHandler(this.btnArbol_Click);
             // 
@@ -192,7 +204,7 @@ namespace Aplicacion.WinForms.Formularios
             this.MinimumSize = new System.Drawing.Size(800, 540);
             this.Name = "FormInicio";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Inicio ó ¡rbol genealÛgico";
+            this.Text = "Inicio ‚Äî √Årbol geneal√≥gico";
             this.panelBotones.ResumeLayout(false);
             this.panelPie.ResumeLayout(false);
             this.panelPie.PerformLayout();

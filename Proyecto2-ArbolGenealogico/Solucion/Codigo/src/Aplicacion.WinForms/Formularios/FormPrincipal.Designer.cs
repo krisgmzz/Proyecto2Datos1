@@ -18,6 +18,7 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.Button btnEditar;
         private System.Windows.Forms.Button btnEliminar;
     private System.Windows.Forms.Button btnMapa;
+        private System.Windows.Forms.Button btnVolverMain;
 
         private System.Windows.Forms.GroupBox grpEditorPersona;
     private System.Windows.Forms.TableLayoutPanel tlpEditor;
@@ -63,13 +64,15 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.Label lblHijos;
         private System.Windows.Forms.Button btnQuitarVinculo;
 
-        // �rbol
+    // Árbol
         private System.Windows.Forms.Label lblInfoArbol;
         private System.Windows.Forms.ComboBox cmbAncestroRaiz;
         private System.Windows.Forms.Label lblAncestro;
         private System.Windows.Forms.Button btnRedibujarArbol;
         private System.Windows.Forms.Button btnAjustarArbol;
         private System.Windows.Forms.Button btnExportarArbol;
+    private System.Windows.Forms.Button btnExportarProyecto;
+    private System.Windows.Forms.Button btnVolver;
         private System.Windows.Forms.Panel pnlCanvasArbol;
 
         /// <summary>
@@ -83,7 +86,7 @@ namespace Aplicacion.WinForms.Formularios
             base.Dispose(disposing);
         }
 
-        #region C�digo del Dise�ador
+    #region Código del Diseñador
 
         private void InitializeComponent()
         {
@@ -140,7 +143,7 @@ namespace Aplicacion.WinForms.Formularios
             this.lstHijos = new System.Windows.Forms.ListBox();
             this.btnQuitarVinculo = new System.Windows.Forms.Button();
 
-            // ====== �rbol ======
+            // ====== Árbol ======
             this.lblInfoArbol = new System.Windows.Forms.Label();
             this.lblAncestro = new System.Windows.Forms.Label();
             this.cmbAncestroRaiz = new System.Windows.Forms.ComboBox();
@@ -201,6 +204,13 @@ namespace Aplicacion.WinForms.Formularios
             this.btnMapa.Left = 344; this.btnMapa.Top = 8;
             this.btnMapa.Click += new System.EventHandler(this.btnMapa_Click);
 
+            // Botón Volver: cierra FormPrincipal y vuelve al menú inicio
+            this.btnVolverMain = new System.Windows.Forms.Button();
+            this.btnVolverMain.Text = "Volver";
+            this.btnVolverMain.Width = 100;
+            this.btnVolverMain.Left = 456; this.btnVolverMain.Top = 8;
+            this.btnVolverMain.Click += new System.EventHandler(this.btnVolver_Click);
+
             this.btnAgregar.Click += new System.EventHandler(this.btnAgregar_Click);
             this.btnEditar.Click += new System.EventHandler(this.btnEditar_Click);
             this.btnEliminar.Click += new System.EventHandler(this.btnEliminar_Click);
@@ -209,6 +219,7 @@ namespace Aplicacion.WinForms.Formularios
             pnlAcciones.Controls.Add(this.btnEditar);
             pnlAcciones.Controls.Add(this.btnEliminar);
             pnlAcciones.Controls.Add(this.btnMapa);
+            pnlAcciones.Controls.Add(this.btnVolverMain);
 
             this.splitPersonas.Panel1.Controls.Add(this.dgvPersonas);
             this.splitPersonas.Panel1.Controls.Add(pnlAcciones);
@@ -320,7 +331,7 @@ namespace Aplicacion.WinForms.Formularios
             this.grpEditorPersona.Controls.Add(this.pnlEditorScroll);
             this.tlpEditor.BringToFront();
 
-            // A�adir a la tab Personas
+            // Añadir a la tab Personas
             this.tabPersonas.Controls.Add(this.splitPersonas);
             this.splitPersonas.Panel2.Controls.Add(this.grpEditorPersona);
 
@@ -356,7 +367,7 @@ namespace Aplicacion.WinForms.Formularios
             this.lblHijos.Left = 12; this.lblHijos.Top = 168;
             this.lstHijos.Left = 12; this.lstHijos.Top = 190; this.lstHijos.Width = 508; this.lstHijos.Height = 260;
 
-            this.btnQuitarVinculo.Text = "Quitar v�nculo seleccionado";
+            this.btnQuitarVinculo.Text = "Quitar vínculo seleccionado";
             this.btnQuitarVinculo.Left = 12; this.btnQuitarVinculo.Top = 460; this.btnQuitarVinculo.Width = 240;
             this.btnQuitarVinculo.Click += new System.EventHandler(this.btnQuitarVinculo_Click);
 
@@ -372,15 +383,15 @@ namespace Aplicacion.WinForms.Formularios
             this.tabRelaciones.Controls.Add(this.lstHijos);
             this.tabRelaciones.Controls.Add(this.btnQuitarVinculo);
 
-            // =================== TAB �RBOL ===================
-            this.tabArbol.Text = "�rbol";
+            // =================== TAB ÁRBOL ===================
+            this.tabArbol.Text = "Árbol";
             this.tabArbol.Padding = new System.Windows.Forms.Padding(12);
 
-            this.lblInfoArbol.Text = "Vista del �rbol geneal�gico.";
+            this.lblInfoArbol.Text = "Vista del árbol genealógico.";
             this.lblInfoArbol.AutoSize = true;
             this.lblInfoArbol.Left = 12; this.lblInfoArbol.Top = 12;
 
-            this.lblAncestro.Text = "Ancestro ra�z:";
+            this.lblAncestro.Text = "Ancestro raíz:";
             this.lblAncestro.Left = 12; this.lblAncestro.Top = 44;
             this.cmbAncestroRaiz.Left = 110; this.cmbAncestroRaiz.Top = 40; this.cmbAncestroRaiz.Width = 240;
             this.cmbAncestroRaiz.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -397,6 +408,16 @@ namespace Aplicacion.WinForms.Formularios
             this.btnExportarArbol.Left = 610; this.btnExportarArbol.Top = 38; this.btnExportarArbol.Width = 120;
             this.btnExportarArbol.Click += new System.EventHandler(this.btnExportarArbol_Click);
 
+            this.btnExportarProyecto = new System.Windows.Forms.Button();
+            this.btnExportarProyecto.Text = "Exportar JSON";
+            this.btnExportarProyecto.Left = 740; this.btnExportarProyecto.Top = 38; this.btnExportarProyecto.Width = 120;
+            this.btnExportarProyecto.Click += new System.EventHandler(this.btnExportarProyecto_Click);
+
+            this.btnVolver = new System.Windows.Forms.Button();
+            this.btnVolver.Text = "Volver al menú";
+            this.btnVolver.Left = 880; this.btnVolver.Top = 38; this.btnVolver.Width = 120;
+            this.btnVolver.Click += new System.EventHandler(this.btnVolver_Click);
+
             this.pnlCanvasArbol.Left = 12; this.pnlCanvasArbol.Top = 80;
             this.pnlCanvasArbol.Width = 980; this.pnlCanvasArbol.Height = 500;
             this.pnlCanvasArbol.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
@@ -408,6 +429,8 @@ namespace Aplicacion.WinForms.Formularios
             this.tabArbol.Controls.Add(this.btnRedibujarArbol);
             this.tabArbol.Controls.Add(this.btnAjustarArbol);
             this.tabArbol.Controls.Add(this.btnExportarArbol);
+            this.tabArbol.Controls.Add(this.btnExportarProyecto);
+            this.tabArbol.Controls.Add(this.btnVolver);
             this.tabArbol.Controls.Add(this.pnlCanvasArbol);
 
             // FormPrincipal
@@ -417,7 +440,7 @@ namespace Aplicacion.WinForms.Formularios
             this.MinimumSize = new System.Drawing.Size(960, 600);
             this.Name = "FormPrincipal";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "�rbol geneal�gico � Principal";
+            this.Text = "Árbol genealógico - Principal";
         }
 
         #endregion

@@ -11,6 +11,7 @@ namespace Aplicacion.WinForms.Formularios
 {
     public partial class FormPrincipal : Form
     {
+        private bool _photoDialogOpen = false;
         private enum ModoEdicionPersona { Ninguno, Agregando, Editando }
         private ModoEdicionPersona _modo = ModoEdicionPersona.Ninguno;
 
@@ -45,26 +46,92 @@ namespace Aplicacion.WinForms.Formularios
         private void FormPrincipal_Load(object? sender, EventArgs e)
         {
             CargarAvatarGenericoSiNoHayFoto();
-            CargarMockEnGrillaYCombos();
 
-            _relaciones.Clear();
-
-            // Exponer el mock al estado de la aplicación para que otras ventanas (p.e. mapa) lo lean
-            Aplicacion.WinForms.Servicios.AppState.Persons.Clear();
-            Aplicacion.WinForms.Servicios.AppState.Persons.AddRange(_mock.Select(p => new Aplicacion.WinForms.Model.MapPerson
+            // Si hay un proyecto importado en AppState, cargarlo; si no, usar mocks
+            if (Aplicacion.WinForms.Servicios.AppState.Project != null)
             {
-                Id = p.Cedula,
-                Nombre = $"{p.Nombres} {p.Apellidos}",
-                Latitud = p.Latitud,
-                Longitud = p.Longitud,
-                FotoRuta = p.FotoRuta
-            }));
-            //CargarRelacionesEjemplo();            // ejemplo visible (Luis+Ana→María)
+                var proj = Aplicacion.WinForms.Servicios.AppState.Project;
+                _mock.Clear();
+                foreach (var pd in proj.Persons)
+                {
+                    _mock.Add(new PersonaFila
+                    {
+                        Cedula = pd.Cedula,
+                        Nombres = pd.Nombres,
+                        Apellidos = pd.Apellidos,
+                        FechaNacimiento = pd.FechaNacimiento,
+                        Fallecido = pd.Fallecido,
+                        FechaDefuncion = pd.FechaDefuncion ?? DateTime.MinValue,
+                        Latitud = pd.Latitud,
+                        Longitud = pd.Longitud,
+                        Pais = pd.Pais,
+                        Ciudad = pd.Ciudad,
+                        FotoRuta = pd.FotoRuta
+                    });
+                }
+
+                _relaciones.Clear();
+                foreach (var rd in proj.Relaciones)
+                {
+                    _relaciones.Add(new ControlArbolGenealogico.Relacion { PadreId = rd.PadreId, MadreId = rd.MadreId, HijoId = rd.HijoId });
+                }
+
+                // Asegurar que Map state también vea las personas
+                Aplicacion.WinForms.Servicios.AppState.Persons.Clear();
+                Aplicacion.WinForms.Servicios.AppState.Persons.AddRange(_mock.Select(p => new Aplicacion.WinForms.Model.MapPerson
+                {
+                    Id = p.Cedula,
+                    Nombre = $"{p.Nombres} {p.Apellidos}",
+                    Latitud = p.Latitud,
+                    Longitud = p.Longitud,
+                    FotoRuta = p.FotoRuta
+                }));
+                // Exponer la lista al BindingSource para que la grilla muestre los datos
+                _bsPersonas.DataSource = _mock;
+                _bsPersonas.ResetBindings(false);
+                RefrescarCombosDesdeMock();
+            }
+            else
+            {
+                CargarMockEnGrillaYCombos();
+                _relaciones.Clear();
+            }
             PrepararLayoutLadoALado();            // crea Split + árbol a la derecha
             AplicarTemaInicial();                 // tema oscuro a TODO
             ActualizarEdadCalculada();
             ActualizarArbol();
             AjustarSplitterSeguro();
+
+            // Inicializar AppState.Project con el estado actual para que Exportar desde FormInicio funcione
+            ActualizarAppStateProject();
+        }
+
+        private void ActualizarAppStateProject()
+        {
+            var proj = new Aplicacion.WinForms.Model.ProjectData();
+            proj.Persons.AddRange(_mock.Select(p => new Aplicacion.WinForms.Model.PersonData
+            {
+                Cedula = p.Cedula,
+                Nombres = p.Nombres,
+                Apellidos = p.Apellidos,
+                FechaNacimiento = p.FechaNacimiento,
+                Fallecido = p.Fallecido,
+                FechaDefuncion = p.Fallecido ? p.FechaDefuncion : null,
+                Latitud = p.Latitud,
+                Longitud = p.Longitud,
+                Pais = p.Pais,
+                Ciudad = p.Ciudad,
+                FotoRuta = p.FotoRuta
+            }));
+
+            proj.Relaciones.AddRange(_relaciones.Select(r => new Aplicacion.WinForms.Model.RelationshipData
+            {
+                PadreId = r.PadreId,
+                MadreId = r.MadreId,
+                HijoId = r.HijoId
+            }));
+
+            Aplicacion.WinForms.Servicios.AppState.Project = proj;
         }
 
         private void SeleccionarPestaña(string nombre)
@@ -534,6 +601,7 @@ namespace Aplicacion.WinForms.Formularios
                     _bsPersonas.ResetBindings(false);
                     RefrescarCombosDesdeMock();
                     ActualizarArbol();
+                    ActualizarAppStateProject();
                 }
             }
         }
@@ -599,6 +667,7 @@ namespace Aplicacion.WinForms.Formularios
             HabilitarEdicionPersona(false);
             LimpiarFormularioPersona();
             ActualizarArbol();
+            ActualizarAppStateProject();
         }
 
         private void btnCancelarPersona_Click(object sender, EventArgs e)
@@ -610,15 +679,24 @@ namespace Aplicacion.WinForms.Formularios
 
         private void btnSeleccionarFoto_Click(object sender, EventArgs e)
         {
-            using var ofd = new OpenFileDialog
+            if (_photoDialogOpen) return;
+            _photoDialogOpen = true;
+            try
             {
-                Title = "Seleccionar foto",
-                Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp"
-            };
-            if (ofd.ShowDialog() == DialogResult.OK)
+                using var ofd = new OpenFileDialog
+                {
+                    Title = "Seleccionar foto",
+                    Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.bmp"
+                };
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    try { picFoto.ImageLocation = ofd.FileName; }
+                    catch { MessageBox.Show("No se pudo cargar la imagen.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                }
+            }
+            finally
             {
-                try { picFoto.ImageLocation = ofd.FileName; }
-                catch { MessageBox.Show("No se pudo cargar la imagen.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                _photoDialogOpen = false;
             }
         }
 
@@ -756,6 +834,7 @@ namespace Aplicacion.WinForms.Formularios
             }
 
             ActualizarArbol();
+            ActualizarAppStateProject();
             MessageBox.Show("Vínculo guardado. El árbol fue actualizado.");
         }
 
@@ -767,6 +846,7 @@ namespace Aplicacion.WinForms.Formularios
 
             int quitados = _relaciones.RemoveAll(r => r.HijoId == hijo);
             ActualizarArbol();
+            ActualizarAppStateProject();
             MessageBox.Show(quitados > 0 ? "Vínculo eliminado." : "No había vínculos para esa persona.");
         }
 
@@ -824,6 +904,38 @@ namespace Aplicacion.WinForms.Formularios
             }
         }
 
+        // Exportar el proyecto (JSON) desde el formulario principal
+        private void btnExportarProyecto_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Asegurar que AppState.Project refleje el estado actual
+                ActualizarAppStateProject();
+
+                var proj = Aplicacion.WinForms.Servicios.AppState.Project;
+                if (proj == null)
+                {
+                    MessageBox.Show("No hay proyecto para exportar.", "Exportar", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                using var sfd = new SaveFileDialog { Title = "Exportar proyecto (JSON)", Filter = "Proyecto JSON (*.json)|*.json", FileName = "proyecto_arbol.json", AddExtension = true };
+                if (sfd.ShowDialog() != DialogResult.OK) return;
+                Aplicacion.WinForms.Servicios.JsonDataStore.Save(sfd.FileName, proj);
+                MessageBox.Show("Proyecto exportado correctamente.", "Exportar", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("No se pudo exportar el proyecto: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnVolver_Click(object sender, EventArgs e)
+        {
+            // Cerrar este formulario para volver al inicio (el FormInicio se ocultó al abrir este)
+            this.Close();
+        }
+
         // -------- MAPA (ventana con marcadores por persona) --------
         private void btnMapa_Click(object sender, EventArgs e)
         {
@@ -841,8 +953,31 @@ namespace Aplicacion.WinForms.Formularios
                     FotoRuta = p.FotoRuta
                 }).ToList();
 
-                using var f = new FormMapaCef(items);
-                f.ShowDialog(this);
+                // Evitar abrir varias instancias del Mapa
+                foreach (Form open in Application.OpenForms)
+                {
+                    if (open is FormMapaCef existingMap)
+                    {
+                        try { existingMap.WindowState = FormWindowState.Normal; existingMap.BringToFront(); existingMap.Select(); }
+                        catch { }
+                        return;
+                    }
+                }
+
+                try
+                {
+                    using var f = new FormMapaCef(items);
+                    f.ShowDialog(this);
+                }
+                catch (Exception)
+                {
+                    // Fallback: abrir en navegador externo
+                    try
+                    {
+                        Aplicacion.WinForms.Servicios.MapExporter.OpenMapInBrowser(items);
+                    }
+                    catch { }
+                }
             }
             catch (Exception ex)
             {

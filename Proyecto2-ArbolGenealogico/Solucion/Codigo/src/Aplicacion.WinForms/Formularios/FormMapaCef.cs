@@ -56,21 +56,11 @@ namespace Aplicacion.WinForms.Formularios
 
                 Controls.Add(_browser);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Si la inicialización falla (faltan binarios nativos), caer al navegador externo
-                try
-                {
-                    var path = MapExporter.GenerateMapHtmlFile(persons);
-                    var psi = new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true };
-                    System.Diagnostics.Process.Start(psi);
-                    Shown += (_, __) => Close();
-                }
-                catch
-                {
-                    var lbl = new Label { Text = "No se pudo inicializar el navegador embebido ni abrir el navegador externo.", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.MiddleCenter };
-                    Controls.Add(lbl);
-                }
+                // Dejar que el llamador maneje el fallback (abrir en navegador externo).
+                // Rethrow para que el caller pueda abrir MapExporter si lo desea.
+                throw new InvalidOperationException("Inicialización de CefSharp fallida.", ex);
             }
         }
 

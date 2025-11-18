@@ -7,7 +7,7 @@ namespace Aplicacion.WinForms
     internal static class Program
     {
         /// <summary>
-        /// Punto de entrada principal de la aplicación.
+    /// Punto de entrada principal de la aplicaciÃ³n.
         /// </summary>
         [STAThread]
         private static void Main()
@@ -15,8 +15,24 @@ namespace Aplicacion.WinForms
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // Pantalla inicial (menú principal)
-            Application.Run(new FormInicio());
+            try
+            {
+                // Pantalla inicial (menÃº principal)
+                Application.Run(new FormInicio());
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    var path = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Proyecto2Arbol", "startup_error.log");
+                    var dir = System.IO.Path.GetDirectoryName(path) ?? System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
+                    if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+                    System.IO.File.WriteAllText(path, DateTime.Now + "\n" + ex.ToString());
+                }
+                catch { }
+                // Re-lanzar para mantener el cÃ³digo de salida distinto de cero
+                throw;
+            }
         }
     }
 }

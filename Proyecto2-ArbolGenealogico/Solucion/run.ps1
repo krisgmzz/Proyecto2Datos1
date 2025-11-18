@@ -1,8 +1,7 @@
-Write-Host "🔧 Compilando solución..."
-dotnet build .\ArbolGenealogico.sln
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Error de compilación, revisa el código." -ForegroundColor Red
-    exit
-}
-Write-Host "🚀 Ejecutando aplicación..."
-dotnet run --project .\Codigo\src\Aplicacion.WinForms\Aplicacion.WinForms.csproj
+<#
+Este script fue neutralizado por petición del desarrollador para evitar
+que scripts automáticos abran la aplicación desde el repositorio.
+Si necesitas volver a ejecutar desde un script, restaura el contenido
+original o usa directamente `dotnet run --project <ruta al csproj>`.
+#>
+Write-Host "run.ps1 desactivado. Use dotnet run desde la terminal para iniciar la app." -ForegroundColor Yellow
