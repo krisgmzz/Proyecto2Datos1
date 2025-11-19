@@ -39,10 +39,27 @@ namespace Aplicacion.WinForms.Servicios
                 {
                     if (!string.IsNullOrWhiteSpace(p.FotoRuta) && File.Exists(p.FotoRuta))
                     {
-                        var ext = Path.GetExtension(p.FotoRuta).ToLowerInvariant();
-                        string mime = ext switch { ".png" => "image/png", ".jpg" => "image/jpeg", ".jpeg" => "image/jpeg", ".bmp" => "image/bmp", _ => "application/octet-stream" };
-                        var bytes = File.ReadAllBytes(p.FotoRuta);
-                        fotoData = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                        // Crear miniatura (max 128px) y codificar a PNG para mantener tamaño razonable
+                        using var img = System.Drawing.Image.FromFile(p.FotoRuta);
+                        int max = 128;
+                        int w = img.Width;
+                        int h = img.Height;
+                        double scale = Math.Min(1.0, (double)max / Math.Max(w, h));
+                        int tw = Math.Max(1, (int)Math.Round(w * scale));
+                        int th = Math.Max(1, (int)Math.Round(h * scale));
+                        using var thumb = new System.Drawing.Bitmap(tw, th);
+                        using (var g = System.Drawing.Graphics.FromImage(thumb))
+                        {
+                            g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                            g.DrawImage(img, 0, 0, tw, th);
+                        }
+                        using var ms = new MemoryStream();
+                        // Guardar siempre en PNG para buena compresión y transparencia
+                        thumb.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                        var bytes = ms.ToArray();
+                        fotoData = $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
                     }
                 }
                 catch { }

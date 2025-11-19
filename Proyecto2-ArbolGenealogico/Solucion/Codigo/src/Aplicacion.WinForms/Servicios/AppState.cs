@@ -70,6 +70,33 @@ namespace Aplicacion.WinForms.Servicios
             return false;
         }
 
+        // Devuelve una lista agregada de MapPerson recorriendo todos los archivos JSON en la carpeta de autosave
+        public static List<MapPerson> GetAllPersonsFromProjects()
+        {
+            var aggregated = new List<MapPerson>();
+            try
+            {
+                var folder = GetAutosaveFolder();
+                if (!System.IO.Directory.Exists(folder)) return aggregated;
+                var files = System.IO.Directory.GetFiles(folder, "*.json");
+                foreach (var f in files)
+                {
+                    try
+                    {
+                        var p = JsonDataStore.Load(f);
+                        if (p == null) continue;
+                        foreach (var pd in p.Persons)
+                        {
+                            aggregated.Add(new MapPerson { Id = pd.Cedula, Nombre = pd.Nombres + " " + pd.Apellidos, Latitud = pd.Latitud, Longitud = pd.Longitud, FotoRuta = pd.FotoRuta });
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return aggregated;
+        }
+
         // Guardar proyecto actual en la ruta de autosave (ignore errors)
         public static void SaveAutosave()
         {

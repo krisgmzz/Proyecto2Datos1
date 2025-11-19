@@ -155,15 +155,27 @@ namespace Aplicacion.WinForms.Formularios
         {
             try
             {
-                // Intentar abrir el mapa embebido por defecto usando CefSharp
-                using var f = new FormMapaCef(Aplicacion.WinForms.Servicios.AppState.Persons);
+                // Abrir un mapa global que agregue todos los integrantes de todas las familias guardadas
+                var all = Aplicacion.WinForms.Servicios.AppState.GetAllPersonsFromProjects();
+                var scopeId = "GLOBAL";
+
+                // Reusar ventana ya abierta sólo si corresponde al mismo scope
+                foreach (Form open in Application.OpenForms)
+                {
+                    if (open is FormMapaCef existing && existing.MapScopeId == scopeId)
+                    {
+                        try { existing.WindowState = FormWindowState.Normal; existing.BringToFront(); existing.Select(); }
+                        catch { }
+                        return;
+                    }
+                }
+
+                using var f = new FormMapaCef(all, scopeId);
                 f.ShowDialog(this);
             }
             catch (Exception ex)
             {
-                // En caso de fallo, caemos al navegador externo para asegurar que el mapa siempre se muestre
-                try { Aplicacion.WinForms.Servicios.MapExporter.OpenMapInBrowser(Aplicacion.WinForms.Servicios.AppState.Persons); }
-                catch { }
+                try { Aplicacion.WinForms.Servicios.MapExporter.OpenMapInBrowser(Aplicacion.WinForms.Servicios.AppState.GetAllPersonsFromProjects()); } catch { }
                 MessageBox.Show("No se pudo abrir el mapa: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

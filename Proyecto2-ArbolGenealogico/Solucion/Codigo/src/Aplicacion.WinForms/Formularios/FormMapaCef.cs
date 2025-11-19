@@ -18,10 +18,12 @@ namespace Aplicacion.WinForms.Formularios
     public class FormMapaCef : Form
     {
         private ChromiumWebBrowser? _browser;
+        public string? MapScopeId { get; private set; }
 
-        public FormMapaCef(IEnumerable<MapPerson> persons)
+        public FormMapaCef(IEnumerable<MapPerson> persons, string? scopeId = null)
         {
-            Text = "Mapa";
+            MapScopeId = scopeId;
+            Text = scopeId == "GLOBAL" ? "Mapa — Todas las familias" : (scopeId != null ? $"Mapa — {scopeId}" : "Mapa");
             Width = 1000;
             Height = 700;
             StartPosition = FormStartPosition.CenterParent;

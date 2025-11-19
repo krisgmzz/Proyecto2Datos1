@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using System.Diagnostics;
 using Aplicacion.WinForms.Model;
+using Aplicacion.WinForms.Servicios;
 
 namespace Aplicacion.WinForms.Formularios
 {
@@ -15,6 +18,8 @@ namespace Aplicacion.WinForms.Formularios
     {
     private readonly WebView2 webViewControl;
     private bool _webViewReady = false;
+    private FileSystemWatcher? _watcher;
+    private System.Windows.Forms.Timer? _reloadTimer;
 
         public FormMapa()
         {
@@ -22,6 +27,10 @@ namespace Aplicacion.WinForms.Formularios
             webViewControl = this.webView;
             webViewControl.CoreWebView2InitializationCompleted += WebViewControl_CoreWebView2InitializationCompleted;
             InitializeWebViewAsync();
+            // Load all families on startup
+            LoadAllFamiliesAndRefresh();
+            // Setup file system watcher to auto-refresh when JSON files change
+            SetupAutosaveWatcher();
         }
 
         private async void InitializeWebViewAsync()
@@ -141,10 +150,26 @@ namespace Aplicacion.WinForms.Formularios
                 {
                     if (!string.IsNullOrWhiteSpace(p.FotoRuta) && System.IO.File.Exists(p.FotoRuta))
                     {
-                        var ext = System.IO.Path.GetExtension(p.FotoRuta).ToLowerInvariant();
-                        string mime = ext switch { ".png" => "image/png", ".jpg" => "image/jpeg", ".jpeg" => "image/jpeg", ".bmp" => "image/bmp", _ => "application/octet-stream" };
-                        var bytes = System.IO.File.ReadAllBytes(p.FotoRuta);
-                        fotoData = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                        // Crear miniatura (max 128px) y codificar a PNG
+                        using var img = System.Drawing.Image.FromFile(p.FotoRuta);
+                        int max = 128;
+                        int w = img.Width;
+                        int h = img.Height;
+                        double scale = Math.Min(1.0, (double)max / Math.Max(w, h));
+                        int tw = Math.Max(1, (int)Math.Round(w * scale));
+                        int th = Math.Max(1, (int)Math.Round(h * scale));
+                        using var thumb = new System.Drawing.Bitmap(tw, th);
+                        using (var g = System.Drawing.Graphics.FromImage(thumb))
+                        {
+                            g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                            g.DrawImage(img, 0, 0, tw, th);
+                        }
+                        using var ms = new System.IO.MemoryStream();
+                        thumb.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                        var bytes = ms.ToArray();
+                        fotoData = $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
                     }
                 }
                 catch { }
@@ -208,6 +233,98 @@ namespace Aplicacion.WinForms.Formularios
             {
                 MessageBox.Show("No se pudo mostrar el mapa ni en WebView2 ni en el navegador: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void SetupAutosaveWatcher()
+        {
+            try
+            {
+                var folder = AppState.GetAutosaveFolder();
+                if (!Directory.Exists(folder)) return;
+
+                _watcher = new FileSystemWatcher(folder, "*.json");
+                _watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime;
+                _watcher.IncludeSubdirectories = false;
+                _watcher.Changed += OnAutosaveChanged;
+                _watcher.Created += OnAutosaveChanged;
+                _watcher.Deleted += OnAutosaveChanged;
+                _watcher.Renamed += OnAutosaveChanged;
+                _watcher.EnableRaisingEvents = true;
+
+                // Debounce timer (UI thread) to avoid multiple rapid reloads
+                _reloadTimer = new System.Windows.Forms.Timer();
+                _reloadTimer.Interval = 700; // ms
+                _reloadTimer.Tick += (s, e) =>
+                {
+                    _reloadTimer.Stop();
+                    try { LoadAllFamiliesAndRefresh(); } catch { }
+                };
+            }
+            catch { }
+        }
+
+        private void OnAutosaveChanged(object? sender, FileSystemEventArgs e)
+        {
+            try
+            {
+                // Restart debounce timer on UI thread
+                if (_reloadTimer != null)
+                {
+                    if (InvokeRequired)
+                    {
+                        BeginInvoke(new Action(() => { _reloadTimer.Stop(); _reloadTimer.Start(); }));
+                    }
+                    else
+                    {
+                        _reloadTimer.Stop(); _reloadTimer.Start();
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private void LoadAllFamiliesAndRefresh()
+        {
+            var aggregated = new List<MapPerson>();
+            try
+            {
+                var folder = AppState.GetAutosaveFolder();
+                if (!Directory.Exists(folder))
+                {
+                    // nothing to load
+                    AppState.Persons.Clear();
+                    LoadPersons(aggregated);
+                    return;
+                }
+
+                var files = Directory.GetFiles(folder, "*.json");
+                foreach (var f in files)
+                {
+                    try
+                    {
+                        var p = JsonDataStore.Load(f);
+                        if (p == null) continue;
+                        foreach (var pd in p.Persons)
+                        {
+                            aggregated.Add(new MapPerson { Id = pd.Cedula, Nombre = pd.Nombres + " " + pd.Apellidos, Latitud = pd.Latitud, Longitud = pd.Longitud, FotoRuta = pd.FotoRuta });
+                        }
+                    }
+                    catch { /* ignore malformed files */ }
+                }
+            }
+            catch { }
+
+            // Update shared state and refresh UI
+            AppState.Persons.Clear();
+            AppState.Persons.AddRange(aggregated);
+            LoadPersons(aggregated);
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            try { if (_watcher != null) { _watcher.EnableRaisingEvents = false; _watcher.Dispose(); _watcher = null; } } catch { }
+            try { if (_reloadTimer != null) { _reloadTimer.Stop(); _reloadTimer.Dispose(); _reloadTimer = null; } } catch { }
         }
 
                 private static string GenerateLeafletHtml(string jsonMarkers)

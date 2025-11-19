@@ -185,6 +185,36 @@ namespace Aplicacion.WinForms.Formularios
             btnCargarFixture.Click += (_, __) => { CargarFixtureComplejo(); MessageBox.Show("Fixture cargado. Revisa la pestaña del árbol.", "Fixture", MessageBoxButtons.OK, MessageBoxIcon.Information); };
             try { tabRelaciones.Controls.Add(btnCargarFixture); }
             catch { /* defensivo: si el control no existe en runtime, ignorar */ }
+
+            // ===== Pestaña Estadísticas (creada en tiempo de ejecución para evitar tocar el diseñador) =====
+            try
+            {
+                if (!tabPrincipal.TabPages.ContainsKey("tabEstadisticas"))
+                {
+                    var tp = new TabPage("Estadísticas") { Name = "tabEstadisticas" };
+                    var tbl = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(12) };
+                    tbl.RowStyles.Clear();
+                    tbl.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                    tbl.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                    tbl.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+                    var lblFar = new Label { Name = "lblFarthest", AutoSize = true, Font = new Font(Font.FontFamily, 10, FontStyle.Bold), ForeColor = Color.Gainsboro };
+                    var lblClose = new Label { Name = "lblClosest", AutoSize = true, Font = new Font(Font.FontFamily, 10, FontStyle.Bold), ForeColor = Color.Gainsboro };
+                    var lblAvg = new Label { Name = "lblAverage", AutoSize = true, Font = new Font(Font.FontFamily, 10, FontStyle.Regular), ForeColor = Color.Gainsboro };
+
+                    lblFar.Text = "Par más lejano: —";
+                    lblClose.Text = "Par más cercano: —";
+                    lblAvg.Text = "Distancia promedio: —";
+
+                    tbl.Controls.Add(lblFar, 0, 0);
+                    tbl.Controls.Add(lblClose, 0, 1);
+                    tbl.Controls.Add(lblAvg, 0, 2);
+
+                    tp.Controls.Add(tbl);
+                    tabPrincipal.TabPages.Add(tp);
+                }
+            }
+            catch { }
         }
         // -------- LAYOUT & SPLIT --------
         private void PrepararLayoutLadoALado()
@@ -874,6 +904,113 @@ namespace Aplicacion.WinForms.Formularios
             }).ToList();
 
             _ctrlArbol.CargarDatos(personas, _relaciones);
+            // Update statistics whenever the tree is refreshed (persons/relations may have changed)
+            try { RefreshStatistics(); } catch { }
+        }
+
+        // -------- ESTADÍSTICAS --------
+        private void TabPrincipal_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (tabPrincipal.SelectedTab != null && tabPrincipal.SelectedTab.Name == "tabEstadisticas")
+                    RefreshStatistics();
+            }
+            catch { }
+        }
+
+        private void RefreshStatistics()
+        {
+            try
+            {
+                // gather valid persons with coords
+                var pts = _mock.Where(p => !double.IsNaN(p.Latitud) && !double.IsNaN(p.Longitud)).ToList();
+                var lblFar = FindLabelInTab("lblFarthest");
+                var lblClose = FindLabelInTab("lblClosest");
+                var lblAvg = FindLabelInTab("lblAverage");
+
+                if (pts.Count < 2)
+                {
+                    if (lblFar != null) lblFar.Text = "Par más lejano: —";
+                    if (lblClose != null) lblClose.Text = "Par más cercano: —";
+                    if (lblAvg != null) lblAvg.Text = "Distancia promedio: —";
+                    return;
+                }
+
+                double sum = 0; int count = 0;
+                double bestMax = double.MinValue; (PersonaFila? a, PersonaFila? b) maxPair = (null, null);
+                double bestMin = double.MaxValue; (PersonaFila? a, PersonaFila? b) minPair = (null, null);
+
+                for (int i = 0; i < pts.Count; i++)
+                {
+                    for (int j = i + 1; j < pts.Count; j++)
+                    {
+                        var p1 = pts[i]; var p2 = pts[j];
+                        var d = HaversineDistanceMeters(p1.Latitud, p1.Longitud, p2.Latitud, p2.Longitud);
+                        sum += d; count++;
+                        if (d > bestMax) { bestMax = d; maxPair = (p1, p2); }
+                        if (d < bestMin) { bestMin = d; minPair = (p1, p2); }
+                    }
+                }
+
+                var avg = count > 0 ? sum / count : 0.0;
+
+                if (lblFar != null)
+                {
+                    if (maxPair.a != null && maxPair.b != null)
+                        lblFar.Text = $"Par más lejano: {Escape(maxPair.a.Nombres + " " + maxPair.a.Apellidos)} ↔ {Escape(maxPair.b.Nombres + " " + maxPair.b.Apellidos)} — {FormatDistance(bestMax)}";
+                }
+                if (lblClose != null)
+                {
+                    if (minPair.a != null && minPair.b != null)
+                        lblClose.Text = $"Par más cercano: {Escape(minPair.a.Nombres + " " + minPair.a.Apellidos)} ↔ {Escape(minPair.b.Nombres + " " + minPair.b.Apellidos)} — {FormatDistance(bestMin)}";
+                }
+                if (lblAvg != null)
+                {
+                    lblAvg.Text = $"Distancia promedio entre todos los pares: {FormatDistance(avg)} (sobre {count} pares)";
+                }
+            }
+            catch { }
+        }
+
+        private static string Escape(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+
+        private static string FormatDistance(double meters)
+        {
+            if (double.IsNaN(meters)) return "—";
+            if (meters >= 1000) return (meters / 1000.0).ToString("0.00") + " km";
+            return Math.Round(meters).ToString(CultureInfo.InvariantCulture) + " m";
+        }
+
+        private static double HaversineDistanceMeters(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371000; // meters
+            double toRad = Math.PI / 180.0;
+            var dLat = (lat2 - lat1) * toRad;
+            var dLon = (lon2 - lon1) * toRad;
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) + Math.Cos(lat1 * toRad) * Math.Cos(lat2 * toRad) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c;
+        }
+
+        private Label? FindLabelInTab(string name)
+        {
+            try
+            {
+                var tp = tabPrincipal.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Name == "tabEstadisticas");
+                if (tp == null) return null;
+                return tp.Controls.Cast<Control>().SelectMany(GetAllChildren).OfType<Label>().FirstOrDefault(l => l.Name == name);
+            }
+            catch { return null; }
+        }
+
+        private IEnumerable<Control> GetAllChildren(Control parent)
+        {
+            foreach (Control c in parent.Controls)
+            {
+                yield return c;
+                foreach (var child in GetAllChildren(c)) yield return child;
+            }
         }
 
         private void btnRedibujarArbol_Click(object sender, EventArgs e)
@@ -963,10 +1100,11 @@ namespace Aplicacion.WinForms.Formularios
                     FotoRuta = p.FotoRuta
                 }).ToList();
 
-                // Evitar abrir varias instancias del Mapa
+                // Evitar abrir varias instancias del Mapa: reusar sólo si pertenece a la misma familia
+                var scopeId = Aplicacion.WinForms.Servicios.AppState.Project?.Name ?? "FAMILIA_ACTUAL";
                 foreach (Form open in Application.OpenForms)
                 {
-                    if (open is FormMapaCef existingMap)
+                    if (open is FormMapaCef existingMap && existingMap.MapScopeId == scopeId)
                     {
                         try { existingMap.WindowState = FormWindowState.Normal; existingMap.BringToFront(); existingMap.Select(); }
                         catch { }
@@ -976,7 +1114,7 @@ namespace Aplicacion.WinForms.Formularios
 
                 try
                 {
-                    using var f = new FormMapaCef(items);
+                    using var f = new FormMapaCef(items, scopeId);
                     f.ShowDialog(this);
                 }
                 catch (Exception)
