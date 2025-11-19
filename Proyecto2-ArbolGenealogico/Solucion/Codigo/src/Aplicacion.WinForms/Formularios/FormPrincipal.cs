@@ -28,6 +28,17 @@ namespace Aplicacion.WinForms.Formularios
             InicializarUi();
             SeleccionarPestaña(pestañaInicial);
 
+            // Aumentar el ancho de la ventana un 10% al iniciar para evitar recortes
+            try
+            {
+                var screenW = Screen.PrimaryScreen?.WorkingArea.Width ?? this.Width;
+                var target = (int)(this.Width * 1.10);
+                // No exceder el ancho de la pantalla
+                if (target > screenW) target = screenW;
+                this.Width = target;
+            }
+            catch { /* silencioso: si no funciona en algún entorno, no bloquea */ }
+
             Load   += FormPrincipal_Load;
             Shown  += (_, __) => AjustarSplitterSeguro();   // ⬅ fijamos splitter al mostrarse
             Resize += (_, __) => AjustarSplitterSeguro();   // ⬅ y cuando cambie de tamaño
@@ -61,7 +72,7 @@ namespace Aplicacion.WinForms.Formularios
                         Apellidos = pd.Apellidos,
                         FechaNacimiento = pd.FechaNacimiento,
                         Fallecido = pd.Fallecido,
-                        FechaDefuncion = pd.FechaDefuncion ?? DateTime.MinValue,
+                        FechaDefuncion = pd.FechaDefuncion,
                         Latitud = pd.Latitud,
                         Longitud = pd.Longitud,
                         Pais = pd.Pais,
@@ -86,6 +97,8 @@ namespace Aplicacion.WinForms.Formularios
                     Longitud = p.Longitud,
                     FotoRuta = p.FotoRuta
                 }));
+                // Calcular texto de edad para cada persona cargada del proyecto (para grilla y visual)
+                _mock.ForEach(p => p.EdadTexto = CalcularEdadTexto(p.FechaNacimiento, p.Fallecido, p.FechaDefuncion));
                 // Exponer la lista al BindingSource para que la grilla muestre los datos
                 _bsPersonas.DataSource = _mock;
                 _bsPersonas.ResetBindings(false);
@@ -546,7 +559,9 @@ namespace Aplicacion.WinForms.Formularios
             var fnac = dtpFechaNacimiento.Value.Date;
             var fallecido = chkFallecido.Checked;
             DateTime? fdef = fallecido ? dtpFechaDefuncion.Value.Date : (DateTime?)null;
-            lblEdadCalculada.Text = "Edad: " + CalcularEdadTexto(fnac, fallecido, fdef);
+            // left label remains static, value label shows only the computed text
+            try { lblEdad.Text = "Edad:"; } catch { }
+            lblEdadCalculada.Text = CalcularEdadTexto(fnac, fallecido, fdef);
         }
 
         private static string CalcularEdadTexto(DateTime fechaNac, bool fallecido, DateTime? fechaDef)
@@ -556,6 +571,9 @@ namespace Aplicacion.WinForms.Formularios
 
             var (anios, meses, dias) = CalcularEdadDetallada(fechaNac, hasta);
             var sufijo = fallecido ? " (al fallecer)" : "";
+            // Format: show years and months at minimum, include days if non-zero for precision
+            if (dias == 0)
+                return $"{anios} años, {meses} meses{sufijo}";
             return $"{anios} años, {meses} meses, {dias} días{sufijo}";
         }
 
@@ -607,7 +625,7 @@ namespace Aplicacion.WinForms.Formularios
                 txtApellidos.Text = p.Apellidos;
                 dtpFechaNacimiento.Value = p.FechaNacimiento;
                 chkFallecido.Checked = p.Fallecido;
-                dtpFechaDefuncion.Value = p.Fallecido && p.FechaDefuncion != default ? p.FechaDefuncion : DateTime.Today;
+                dtpFechaDefuncion.Value = p.Fallecido && p.FechaDefuncion.HasValue ? p.FechaDefuncion.Value : DateTime.Today;
                 txtLatitud.Text = p.Latitud.ToString(CultureInfo.InvariantCulture);
                 txtLongitud.Text = p.Longitud.ToString(CultureInfo.InvariantCulture);
                 txtPais.Text = p.Pais;
@@ -664,7 +682,7 @@ namespace Aplicacion.WinForms.Formularios
                 Apellidos = txtApellidos.Text.Trim(),
                 FechaNacimiento = dtpFechaNacimiento.Value.Date,
                 Fallecido = chkFallecido.Checked,
-                FechaDefuncion = chkFallecido.Checked ? dtpFechaDefuncion.Value.Date : default,
+                FechaDefuncion = chkFallecido.Checked ? dtpFechaDefuncion.Value.Date : (DateTime?)null,
                 Latitud = lat,
                 Longitud = lon,
                 Pais = txtPais.Text.Trim(),
@@ -751,7 +769,7 @@ namespace Aplicacion.WinForms.Formularios
                 txtApellidos.Text = p.Apellidos;
                 dtpFechaNacimiento.Value = p.FechaNacimiento;
                 chkFallecido.Checked = p.Fallecido;
-                dtpFechaDefuncion.Value = p.Fallecido && p.FechaDefuncion != default ? p.FechaDefuncion : DateTime.Today;
+                dtpFechaDefuncion.Value = p.Fallecido && p.FechaDefuncion.HasValue ? p.FechaDefuncion.Value : DateTime.Today;
 
                 txtLatitud.Text = p.Latitud.ToString(CultureInfo.InvariantCulture);
                 txtLongitud.Text = p.Longitud.ToString(CultureInfo.InvariantCulture);
@@ -778,7 +796,8 @@ namespace Aplicacion.WinForms.Formularios
             txtCiudad.Clear();
             picFoto.ImageLocation = null;
             CargarAvatarGenericoSiNoHayFoto();
-            lblEdadCalculada.Text = "Edad: —";
+            try { lblEdad.Text = "Edad:"; } catch { }
+            lblEdadCalculada.Text = "—";
         }
 
         // -------- RELACIONES --------
@@ -1141,7 +1160,7 @@ namespace Aplicacion.WinForms.Formularios
             public string Apellidos { get; set; } = "";
             public DateTime FechaNacimiento { get; set; }
             public bool Fallecido { get; set; }
-            public DateTime FechaDefuncion { get; set; }
+            public DateTime? FechaDefuncion { get; set; }
             public double Latitud { get; set; }
             public double Longitud { get; set; }
             public string Pais { get; set; } = "";

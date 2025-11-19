@@ -23,6 +23,7 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.GroupBox grpEditorPersona;
     private System.Windows.Forms.TableLayoutPanel tlpEditor;
     private System.Windows.Forms.FlowLayoutPanel flpEditorButtons;
+    private System.Windows.Forms.Panel pnlEditorBottom;
     private System.Windows.Forms.Panel pnlEditorScroll;
         private System.Windows.Forms.TextBox txtCedula;
         private System.Windows.Forms.TextBox txtNombres;
@@ -37,8 +38,9 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.PictureBox picFoto;
         private System.Windows.Forms.Button btnSeleccionarFoto;
         private System.Windows.Forms.Button btnGuardarPersona;
-        private System.Windows.Forms.Button btnCancelarPersona;
-        private System.Windows.Forms.Label lblEdadCalculada;
+    private System.Windows.Forms.Button btnCancelarPersona;
+    private System.Windows.Forms.Label lblEdadCalculada;
+    private System.Windows.Forms.Label lblEdad;
 
         private System.Windows.Forms.Label lblCedula;
         private System.Windows.Forms.Label lblNombres;
@@ -105,6 +107,7 @@ namespace Aplicacion.WinForms.Formularios
 
             this.grpEditorPersona = new System.Windows.Forms.GroupBox();
             this.lblCedula = new System.Windows.Forms.Label();
+            this.lblEdad = new System.Windows.Forms.Label();
             this.txtCedula = new System.Windows.Forms.TextBox();
             this.lblNombres = new System.Windows.Forms.Label();
             this.txtNombres = new System.Windows.Forms.TextBox();
@@ -126,6 +129,7 @@ namespace Aplicacion.WinForms.Formularios
             this.lblFoto = new System.Windows.Forms.Label();
             this.picFoto = new System.Windows.Forms.PictureBox();
             this.btnSeleccionarFoto = new System.Windows.Forms.Button();
+            this.pnlEditorBottom = new System.Windows.Forms.Panel();
             this.lblEdadCalculada = new System.Windows.Forms.Label();
             this.btnGuardarPersona = new System.Windows.Forms.Button();
             this.btnCancelarPersona = new System.Windows.Forms.Button();
@@ -238,8 +242,7 @@ namespace Aplicacion.WinForms.Formularios
             // Configuración del TableLayoutPanel (3 columnas: etiqueta, entrada, foto)
             this.tlpEditor.ColumnCount = 3;
             this.tlpEditor.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 30F));
-            this.tlpEditor.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tlpEditor.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.tlpEditor.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 70F));
             // Use Top dock with AutoSize so the TableLayoutPanel grows only as needed
             // and the surrounding scroll panel provides scrolling for overflow.
             this.tlpEditor.Dock = System.Windows.Forms.DockStyle.Top;
@@ -280,11 +283,15 @@ namespace Aplicacion.WinForms.Formularios
             this.btnCancelarPersona.Text = "Cancelar";
             this.btnGuardarPersona.Width = 100; this.btnCancelarPersona.Width = 100;
             this.flpEditorButtons.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
-            this.flpEditorButtons.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flpEditorButtons.Controls.Add(this.btnCancelarPersona);
-            this.flpEditorButtons.Controls.Add(this.btnGuardarPersona);
-            this.flpEditorButtons.Padding = new System.Windows.Forms.Padding(0);
-            this.flpEditorButtons.Margin = new System.Windows.Forms.Padding(0);
+                // Evitar recortes: usar tamaño fijo del panel de botones y padding
+                this.flpEditorButtons.AutoSize = false;
+                this.flpEditorButtons.Width = 240;
+                this.flpEditorButtons.Controls.Add(this.btnCancelarPersona);
+                this.flpEditorButtons.Controls.Add(this.btnGuardarPersona);
+                this.flpEditorButtons.Padding = new System.Windows.Forms.Padding(6);
+                this.flpEditorButtons.Margin = new System.Windows.Forms.Padding(6);
+                this.flpEditorButtons.WrapContents = false;
+                this.flpEditorButtons.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
 
             this.btnGuardarPersona.Click += new System.EventHandler(this.btnGuardarPersona_Click);
             this.btnCancelarPersona.Click += new System.EventHandler(this.btnCancelarPersona_Click);
@@ -302,20 +309,79 @@ namespace Aplicacion.WinForms.Formularios
             this.tlpEditor.Controls.Add(this.lblPais, 0, r); this.tlpEditor.Controls.Add(this.txtPais, 1, r); r++;
             this.tlpEditor.Controls.Add(this.lblCiudad, 0, r); this.tlpEditor.Controls.Add(this.txtCiudad, 1, r); r++;
 
-            // Edad calculada y botones
-            this.tlpEditor.Controls.Add(this.lblEdadCalculada, 0, r);
-            this.tlpEditor.Controls.Add(this.flpEditorButtons, 1, r);
+            // Edad: poner la palabra "Edad" en la columna izquierda y el valor en la columna derecha
+            this.lblEdad.AutoSize = true;
+            this.lblEdad.Text = "Edad:";
+            this.lblEdad.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
+            this.lblEdad.Font = new System.Drawing.Font(this.Font.FontFamily, 9F, System.Drawing.FontStyle.Regular);
+            this.tlpEditor.Controls.Add(this.lblEdad, 0, r);
 
-            // Añadir PictureBox en la tercera columna y que ocupe varias filas (excepto la última fila de botones)
-            int filasUsadas = r; // picFoto ocupará filas 0..filasUsadas-1
-            this.tlpEditor.Controls.Add(this.picFoto, 2, 0);
-            this.tlpEditor.SetRowSpan(this.picFoto, Math.Max(1, filasUsadas));
+            this.lblEdadCalculada.AutoSize = true;
+            this.lblEdadCalculada.Font = new System.Drawing.Font(this.Font.FontFamily, 9F, System.Drawing.FontStyle.Bold);
+            this.lblEdadCalculada.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
+            this.tlpEditor.Controls.Add(this.lblEdadCalculada, 1, r);
 
-            // Añadir botón Seleccionar Foto en la última fila, tercera columna
+            // Eliminar la columna derecha: colocaremos la foto y botones en un panel fijo en la parte inferior
+            int filasUsadas = r;
+
+            // Configurar panel inferior dentro del panel derecho para contener la foto y botones fijos
+            this.pnlEditorBottom = new System.Windows.Forms.Panel();
+            this.pnlEditorBottom.Height = 180;
+            this.pnlEditorBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlEditorBottom.Padding = new System.Windows.Forms.Padding(8);
+            // Hacer fondo transparente para evitar cuadros grises que cubran controles
+            this.pnlEditorBottom.BackColor = System.Drawing.Color.Transparent;
+
+            // Preparar la imagen y el botón de seleccionar foto dentro del panel inferior
+            this.picFoto.Width = 160; this.picFoto.Height = 160;
+            this.picFoto.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.picFoto.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.picFoto.BackColor = System.Drawing.Color.FromArgb(30, 32, 36);
+
             this.btnSeleccionarFoto.Text = "Seleccionar...";
             this.btnSeleccionarFoto.Width = 120;
             this.btnSeleccionarFoto.Click += new System.EventHandler(this.btnSeleccionarFoto_Click);
-            this.tlpEditor.Controls.Add(this.btnSeleccionarFoto, 2, r);
+
+            // Organizar: foto a la izquierda, botones a la derecha
+            this.flpEditorButtons.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
+            this.flpEditorButtons.Width = 220;
+            this.flpEditorButtons.Dock = System.Windows.Forms.DockStyle.Right;
+
+            // Añadir controls al panel inferior: creamos un TableLayout para organizar foto / centro / botones
+            var tlpBottom = new System.Windows.Forms.TableLayoutPanel();
+            tlpBottom.Dock = System.Windows.Forms.DockStyle.Fill;
+            tlpBottom.BackColor = System.Drawing.Color.Transparent;
+            tlpBottom.ColumnCount = 3;
+            tlpBottom.RowCount = 2;
+            // Izquierda: ancho fijo para la foto; centro: toma el resto; derecha: pequeño margen fijo
+            tlpBottom.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 170F));
+            tlpBottom.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tlpBottom.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 16F));
+            tlpBottom.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            tlpBottom.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+
+            // foto en la columna izquierda, ocupa ambas filas
+            tlpBottom.Controls.Add(this.picFoto, 0, 0);
+            tlpBottom.SetRowSpan(this.picFoto, 2);
+
+            // botones guardar/cancelar en la columna central, fila superior (izquierda foto, centro botones, abajo seleccionar)
+            this.flpEditorButtons.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
+            this.flpEditorButtons.AutoSize = true;
+            this.flpEditorButtons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.flpEditorButtons.Padding = new System.Windows.Forms.Padding(6,4,12,6); // espacio extra a la derecha para evitar recorte
+            this.flpEditorButtons.Margin = new System.Windows.Forms.Padding(6);
+            this.flpEditorButtons.WrapContents = false;
+            this.flpEditorButtons.Anchor = System.Windows.Forms.AnchorStyles.None;
+            // Añadir al centro (col 1, fila 0)
+            tlpBottom.Controls.Add(this.flpEditorButtons, 1, 0);
+
+            // botón seleccionar foto en el centro, fila inferior — quedará centrado en la columna central
+            this.btnSeleccionarFoto.Text = "Seleccionar...";
+            this.btnSeleccionarFoto.Width = 120;
+            this.btnSeleccionarFoto.Anchor = System.Windows.Forms.AnchorStyles.None;
+            tlpBottom.Controls.Add(this.btnSeleccionarFoto, 1, 1);
+
+            this.pnlEditorBottom.Controls.Add(tlpBottom);
 
             // Encapsular el TableLayout en un Panel con AutoScroll para permitir scroll vertical en ventanas pequeñas
             this.pnlEditorScroll.AutoScroll = true;
@@ -329,11 +395,15 @@ namespace Aplicacion.WinForms.Formularios
             this.grpEditorPersona.BackColor = System.Drawing.Color.FromArgb(230, 255, 230);
             // Añadir el Panel scroll al groupbox
             this.grpEditorPersona.Controls.Add(this.pnlEditorScroll);
+            // Ajustar el groupbox para que ocupe todo el panel derecho y deje espacio al panel inferior
+            this.grpEditorPersona.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tlpEditor.BringToFront();
 
             // Añadir a la tab Personas
             this.tabPersonas.Controls.Add(this.splitPersonas);
             this.splitPersonas.Panel2.Controls.Add(this.grpEditorPersona);
+            // Añadir panel inferior (foto y botones) al Panel2, quedará fijado abajo
+            this.splitPersonas.Panel2.Controls.Add(this.pnlEditorBottom);
 
             // =================== TAB RELACIONES ===================
             this.tabRelaciones.Text = "Relaciones";
