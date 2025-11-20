@@ -33,6 +33,8 @@ namespace Aplicacion.WinForms.Model
 
         // Metadatos del proyecto
         public string? Name { get; set; }
+        // Tema preferido del proyecto: "Light" o "Dark". Valor por defecto: Light.
+        public string Theme { get; set; } = "Light";
         public DateTime CreatedAt { get; set; }
         public DateTime LastModifiedAt { get; set; }
     }

@@ -1,10 +1,11 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Krypton.Toolkit;
 
 namespace Aplicacion.WinForms.Formularios
 {
-    public partial class FormInicio : Form
+    public partial class FormInicio : KryptonForm
     {
         public FormInicio()
         {
@@ -13,38 +14,87 @@ namespace Aplicacion.WinForms.Formularios
             Load += FormInicio_Load;
         }
 
-        // ===== Tema oscuro en Inicio =====
         private void FormInicio_Load(object? sender, EventArgs e)
         {
-            AplicarTemaOscuro();
+            // Nothing to initialize visually here for theme selection; AppState.TryLoadAutosave already applies saved theme.
         }
 
-        private void AplicarTemaOscuro()
+        private void btnTemas_Click(object? sender, EventArgs e)
         {
-            var fondo = Color.FromArgb(23, 25, 29);
-            var texto = Color.WhiteSmoke;
-            var panel = Color.FromArgb(30, 32, 36);
-            var azulBorde = Color.FromArgb(70, 110, 220);
-
-            BackColor = fondo;
-            ForeColor = texto;
-
-            void Pintar(Control c)
+            try
             {
-                c.BackColor = (c is Panel or TabPage) ? panel : fondo;
-                c.ForeColor = texto;
+                // Create a small context menu with the two theme options
+                var menu = new ContextMenuStrip();
+                var itemLight = new ToolStripMenuItem("Tema claro");
+                var itemDark = new ToolStripMenuItem("Tema oscuro");
 
-                if (c is Button b)
+                // Mark current selection
+                var isDark = false;
+                if (Aplicacion.WinForms.Servicios.AppState.Project != null)
                 {
-                    b.FlatStyle = FlatStyle.Flat;
-                    b.FlatAppearance.BorderSize = 1;
-                    b.FlatAppearance.BorderColor = azulBorde;
-                    b.BackColor = Color.FromArgb(28, 30, 35);
-                    b.ForeColor = texto;
+                    isDark = string.Equals(Aplicacion.WinForms.Servicios.AppState.Project.Theme, "Dark", StringComparison.OrdinalIgnoreCase);
                 }
-                foreach (Control h in c.Controls) Pintar(h);
+                else
+                {
+                    isDark = (Aplicacion.WinForms.Servicios.ThemeManager.Current == Aplicacion.WinForms.Servicios.ThemeManager.Dark);
+                }
+                itemDark.Checked = isDark;
+                itemLight.Checked = !isDark;
+
+                // Use BeginInvoke to defer actual theme application until after the menu has finished processing
+                itemLight.Click += (_, __) =>
+                {
+                    try
+                    {
+                        this.BeginInvoke((Action)(() =>
+                        {
+                            try
+                            {
+                                Aplicacion.WinForms.Servicios.ThemeManager.ApplyTheme(Aplicacion.WinForms.Servicios.ThemeManager.Light);
+                                if (Aplicacion.WinForms.Servicios.AppState.Project != null) Aplicacion.WinForms.Servicios.AppState.Project.Theme = "Light";
+                                try { Aplicacion.WinForms.Servicios.AppState.SaveAutosave(); } catch { }
+                            }
+                            catch { }
+                        }));
+                    }
+                    catch { }
+                };
+
+                itemDark.Click += (_, __) =>
+                {
+                    try
+                    {
+                        this.BeginInvoke((Action)(() =>
+                        {
+                            try
+                            {
+                                Aplicacion.WinForms.Servicios.ThemeManager.ApplyTheme(Aplicacion.WinForms.Servicios.ThemeManager.Dark);
+                                if (Aplicacion.WinForms.Servicios.AppState.Project != null) Aplicacion.WinForms.Servicios.AppState.Project.Theme = "Dark";
+                                try { Aplicacion.WinForms.Servicios.AppState.SaveAutosave(); } catch { }
+                            }
+                            catch { }
+                        }));
+                    }
+                    catch { }
+                };
+
+                menu.Items.Add(itemLight);
+                menu.Items.Add(itemDark);
+
+                // Do not dispose the menu explicitly here; let the runtime GC clean it after close.
+                // Disposing it while event handlers might still be processing can cause "Cannot access a disposed object".
+
+                // Show the menu anchored to the button
+                if (sender is Control c)
+                {
+                    menu.Show(c, new Point(0, c.Height));
+                }
+                else
+                {
+                    menu.Show(this, new Point(10, 50));
+                }
             }
-            foreach (Control c in Controls) Pintar(c);
+            catch { }
         }
 
         // Prompt simple para pedir un string al usuario (modal)
@@ -61,8 +111,25 @@ namespace Aplicacion.WinForms.Formularios
 
             var lbl = new Label { Left = 12, Top = 12, Width = 396, Text = prompt };
             var tb = new TextBox { Left = 12, Top = 36, Width = 396 };
-            var btnOk = new Button { Text = "OK", Left = 240, Width = 80, Top = 68, DialogResult = DialogResult.OK };
-            var btnCancel = new Button { Text = "Cancelar", Left = 324, Width = 84, Top = 68, DialogResult = DialogResult.Cancel };
+            var btnOk = new Krypton.Toolkit.KryptonButton();
+            var btnCancel = new Krypton.Toolkit.KryptonButton();
+            try
+            {
+                btnOk.Text = "OK"; btnOk.Left = 240; btnOk.Width = 80; btnOk.Top = 68; btnOk.DialogResult = DialogResult.OK;
+                btnCancel.Text = "Cancelar"; btnCancel.Left = 324; btnCancel.Width = 84; btnCancel.Top = 68; btnCancel.DialogResult = DialogResult.Cancel;
+                foreach (var kb in new[] { btnOk, btnCancel })
+                {
+                    try
+                    {
+                        kb.Values.Image = null;
+                        kb.Values.Text = kb.Text ?? string.Empty;
+                        kb.StateCommon.Content.ShortText.Font = new System.Drawing.Font("Segoe UI", 9F);
+                        kb.StateCommon.Content.Padding = new System.Windows.Forms.Padding(6, 6, 6, 6);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
 
             f.Controls.Add(lbl); f.Controls.Add(tb); f.Controls.Add(btnOk); f.Controls.Add(btnCancel);
             f.AcceptButton = btnOk; f.CancelButton = btnCancel;
@@ -87,10 +154,18 @@ namespace Aplicacion.WinForms.Formularios
             }
 
             var frm = new FormPrincipal(pestañaInicial);
-            // Cuando el formulario principal se cierre, volver a mostrar este inicio en lugar de cerrarlo.
-            frm.FormClosed += (_, __) => this.Show();
-            frm.Show();
-            this.Hide();
+            // Abrir el formulario principal usando transición suave (fade)
+            try
+            {
+                frm.FormClosed += (_, __) => { try { this.Show(); this.Opacity = 1.0; } catch { } };
+                // Usar helper para mostrar con fade y ocultar este formulario
+                Aplicacion.WinForms.Servicios.WindowTransitions.ShowFormWithFade(this, frm, 220);
+            }
+            catch
+            {
+                // Fallback clásico
+                try { frm.FormClosed += (_, __) => this.Show(); frm.Show(); this.Hide(); } catch { }
+            }
         }
 
         // ===== Handlers que pide el Designer =====

@@ -5,11 +5,12 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using Krypton.Toolkit;
 using Aplicacion.WinForms.Controles;
 
 namespace Aplicacion.WinForms.Formularios
 {
-    public partial class FormPrincipal : Form
+    public partial class FormPrincipal : KryptonForm
     {
         private bool _photoDialogOpen = false;
         private enum ModoEdicionPersona { Ninguno, Agregando, Editando }
@@ -110,7 +111,8 @@ namespace Aplicacion.WinForms.Formularios
                 _relaciones.Clear();
             }
             PrepararLayoutLadoALado();            // crea Split + árbol a la derecha
-            AplicarTemaInicial();                 // tema oscuro a TODO
+            // Do not apply a hardcoded theme here; use ThemeManager to ensure consistent theming across the app.
+            try { Aplicacion.WinForms.Servicios.ThemeManager.ApplyTheme(Aplicacion.WinForms.Servicios.ThemeManager.Current); } catch { }
             ActualizarEdadCalculada();
             ActualizarArbol();
             AjustarSplitterSeguro();
@@ -186,18 +188,21 @@ namespace Aplicacion.WinForms.Formularios
             dtpFechaDefuncion.Enabled = false;
 
             // Botón temporal para cargar fixtures de prueba (útil para depuración del layout)
-            var btnCargarFixture = new Button
+            var btnCargarFixture = new Krypton.Toolkit.KryptonButton();
+            try
             {
-                Name = "btnCargarFixture",
-                Text = "Cargar fixture",
-                Left = 400,
-                Top = 36,
-                Width = 120,
-                Height = 26
-            };
-            btnCargarFixture.Click += (_, __) => { CargarFixtureComplejo(); MessageBox.Show("Fixture cargado. Revisa la pestaña del árbol.", "Fixture", MessageBoxButtons.OK, MessageBoxIcon.Information); };
-            try { tabRelaciones.Controls.Add(btnCargarFixture); }
-            catch { /* defensivo: si el control no existe en runtime, ignorar */ }
+                btnCargarFixture.Name = "btnCargarFixture";
+                btnCargarFixture.Text = "Cargar fixture";
+                btnCargarFixture.Left = 400;
+                btnCargarFixture.Top = 36;
+                btnCargarFixture.Width = 120;
+                btnCargarFixture.Height = 26;
+                btnCargarFixture.Click += (_, __) => { CargarFixtureComplejo(); MessageBox.Show("Fixture cargado. Revisa la pestaña del árbol.", "Fixture", MessageBoxButtons.OK, MessageBoxIcon.Information); };
+                try { btnCargarFixture.Values.Image = null; btnCargarFixture.Values.Text = btnCargarFixture.Text ?? string.Empty; btnCargarFixture.StateCommon.Content.ShortText.Font = new System.Drawing.Font("Segoe UI", 9F); btnCargarFixture.StateCommon.Content.Padding = new System.Windows.Forms.Padding(6); } catch { }
+                try { tabRelaciones.Controls.Add(btnCargarFixture); }
+                catch { /* defensivo: si el control no existe en runtime, ignorar */ }
+            }
+            catch { }
 
             // ===== Pestaña Estadísticas (creada en tiempo de ejecución para evitar tocar el diseñador) =====
             try
@@ -330,93 +335,7 @@ namespace Aplicacion.WinForms.Formularios
         // -------- TEMA OSCURO --------
         private void AplicarTemaInicial()
         {
-            var fondo   = Color.FromArgb(23, 25, 29);
-            var panel   = Color.FromArgb(30, 32, 36);
-            var input   = Color.FromArgb(28, 30, 35);
-            var texto   = Color.WhiteSmoke;
-            var grisTxt = Color.Gainsboro;
-            var azulBorde = Color.FromArgb(70, 110, 220);
-            var gridBg    = Color.FromArgb(26, 28, 32);
-            var gridAlt   = Color.FromArgb(32, 34, 38);
-            var gridHead  = Color.FromArgb(40, 42, 48);
-
-            BackColor = fondo;
-            ForeColor = texto;
-
-            void Pintar(Control c)
-            {
-                // contenedores
-                if (c is TabControl tc)
-                {
-                    tc.DrawMode = TabDrawMode.OwnerDrawFixed;
-                    tc.DrawItem += (s, e) =>
-                    {
-                        var sel = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-                        e.Graphics.FillRectangle(new SolidBrush(sel ? panel : fondo), e.Bounds);
-                        TextRenderer.DrawText(e.Graphics, tc.TabPages[e.Index].Text, e.Font,
-                            e.Bounds, texto, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-                    };
-                    tc.BackColor = fondo;
-                    tc.ForeColor = texto;
-                }
-                else if (c is TabPage or Panel or SplitContainer)
-                    c.BackColor = panel;
-                else
-                    c.BackColor = fondo;
-
-                c.ForeColor = texto;
-
-                // entradas
-                if (c is TextBox or ComboBox or DateTimePicker or NumericUpDown)
-                {
-                    c.BackColor = input;
-                    c.ForeColor = grisTxt;
-                }
-                if (c is CheckBox cb)
-                {
-                    cb.BackColor = panel;
-                    cb.ForeColor = texto;
-                }
-
-                // botones
-                if (c is Button b)
-                {
-                    b.FlatStyle = FlatStyle.Flat;
-                    b.FlatAppearance.BorderSize = 1;
-                    b.FlatAppearance.BorderColor = azulBorde;
-                    b.BackColor = input;
-                    b.ForeColor = texto;
-                }
-
-                // grid
-                if (c is DataGridView gv)
-                {
-                    gv.EnableHeadersVisualStyles = false;
-                    gv.BackgroundColor = gridBg;
-                    gv.GridColor = Color.FromArgb(55, 57, 63);
-
-                    gv.ColumnHeadersDefaultCellStyle.BackColor = gridHead;
-                    gv.ColumnHeadersDefaultCellStyle.ForeColor = texto;
-                    gv.ColumnHeadersDefaultCellStyle.SelectionBackColor = gridHead;
-
-                    gv.DefaultCellStyle.BackColor = gridBg;
-                    gv.DefaultCellStyle.ForeColor = grisTxt;
-                    gv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(60, 64, 72);
-                    gv.DefaultCellStyle.SelectionForeColor = Color.White;
-
-                    gv.AlternatingRowsDefaultCellStyle.BackColor = gridAlt;
-                    gv.AlternatingRowsDefaultCellStyle.ForeColor = grisTxt;
-                }
-
-                foreach (Control h in c.Controls) Pintar(h);
-            }
-
-            // Aplica todo
-            foreach (Control c in Controls) Pintar(c);
-
-            // panel del árbol (si ya existe)
-            _ctrlArbol?.AplicarTema(true);
-            if (_ctrlArbol != null) _ctrlArbol.BackColor = Color.FromArgb(24, 26, 30);
+            // Deprecated: theming is now handled centrally by ThemeManager. Keep method for compatibility but no-op.
         }
 
         private void HabilitarEdicionPersona(bool habilitar)

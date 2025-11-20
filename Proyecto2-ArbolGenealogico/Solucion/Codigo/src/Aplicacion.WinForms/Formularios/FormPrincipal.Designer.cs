@@ -14,11 +14,11 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.SplitContainer splitPersonas;
         private System.Windows.Forms.Label lblInfoPersonas;
         private System.Windows.Forms.DataGridView dgvPersonas;
-        private System.Windows.Forms.Button btnAgregar;
-        private System.Windows.Forms.Button btnEditar;
-        private System.Windows.Forms.Button btnEliminar;
-    private System.Windows.Forms.Button btnMapa;
-        private System.Windows.Forms.Button btnVolverMain;
+        private Krypton.Toolkit.KryptonButton btnAgregar;
+        private Krypton.Toolkit.KryptonButton btnEditar;
+        private Krypton.Toolkit.KryptonButton btnEliminar;
+    private Krypton.Toolkit.KryptonButton btnMapa;
+        private Krypton.Toolkit.KryptonButton btnVolverMain;
 
         private System.Windows.Forms.GroupBox grpEditorPersona;
     private System.Windows.Forms.TableLayoutPanel tlpEditor;
@@ -36,9 +36,9 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.TextBox txtPais;
         private System.Windows.Forms.TextBox txtCiudad;
         private System.Windows.Forms.PictureBox picFoto;
-        private System.Windows.Forms.Button btnSeleccionarFoto;
-        private System.Windows.Forms.Button btnGuardarPersona;
-    private System.Windows.Forms.Button btnCancelarPersona;
+        private Krypton.Toolkit.KryptonButton btnSeleccionarFoto;
+        private Krypton.Toolkit.KryptonButton btnGuardarPersona;
+    private Krypton.Toolkit.KryptonButton btnCancelarPersona;
     private System.Windows.Forms.Label lblEdadCalculada;
     private System.Windows.Forms.Label lblEdad;
 
@@ -61,20 +61,20 @@ namespace Aplicacion.WinForms.Formularios
         private System.Windows.Forms.ComboBox cmbMadre;
         private System.Windows.Forms.Label lblPadre;
         private System.Windows.Forms.Label lblMadre;
-        private System.Windows.Forms.Button btnVincular;
+    private Krypton.Toolkit.KryptonButton btnVincular;
         private System.Windows.Forms.ListBox lstHijos;
         private System.Windows.Forms.Label lblHijos;
-        private System.Windows.Forms.Button btnQuitarVinculo;
+    private Krypton.Toolkit.KryptonButton btnQuitarVinculo;
 
     // Árbol
         private System.Windows.Forms.Label lblInfoArbol;
         private System.Windows.Forms.ComboBox cmbAncestroRaiz;
         private System.Windows.Forms.Label lblAncestro;
-        private System.Windows.Forms.Button btnRedibujarArbol;
-        private System.Windows.Forms.Button btnAjustarArbol;
-        private System.Windows.Forms.Button btnExportarArbol;
-    private System.Windows.Forms.Button btnExportarProyecto;
-    private System.Windows.Forms.Button btnVolver;
+        private Krypton.Toolkit.KryptonButton btnRedibujarArbol;
+        private Krypton.Toolkit.KryptonButton btnAjustarArbol;
+        private Krypton.Toolkit.KryptonButton btnExportarArbol;
+    private Krypton.Toolkit.KryptonButton btnExportarProyecto;
+    private Krypton.Toolkit.KryptonButton btnVolver;
         private System.Windows.Forms.Panel pnlCanvasArbol;
 
         /// <summary>
@@ -101,9 +101,9 @@ namespace Aplicacion.WinForms.Formularios
             this.splitPersonas = new System.Windows.Forms.SplitContainer();
             this.lblInfoPersonas = new System.Windows.Forms.Label();
             this.dgvPersonas = new System.Windows.Forms.DataGridView();
-            this.btnAgregar = new System.Windows.Forms.Button();
-            this.btnEditar = new System.Windows.Forms.Button();
-            this.btnEliminar = new System.Windows.Forms.Button();
+            this.btnAgregar = new Krypton.Toolkit.KryptonButton();
+            this.btnEditar = new Krypton.Toolkit.KryptonButton();
+            this.btnEliminar = new Krypton.Toolkit.KryptonButton();
 
             this.grpEditorPersona = new System.Windows.Forms.GroupBox();
             this.lblCedula = new System.Windows.Forms.Label();
@@ -128,11 +128,11 @@ namespace Aplicacion.WinForms.Formularios
             this.txtCiudad = new System.Windows.Forms.TextBox();
             this.lblFoto = new System.Windows.Forms.Label();
             this.picFoto = new System.Windows.Forms.PictureBox();
-            this.btnSeleccionarFoto = new System.Windows.Forms.Button();
+            this.btnSeleccionarFoto = new Krypton.Toolkit.KryptonButton();
             this.pnlEditorBottom = new System.Windows.Forms.Panel();
             this.lblEdadCalculada = new System.Windows.Forms.Label();
-            this.btnGuardarPersona = new System.Windows.Forms.Button();
-            this.btnCancelarPersona = new System.Windows.Forms.Button();
+            this.btnGuardarPersona = new Krypton.Toolkit.KryptonButton();
+            this.btnCancelarPersona = new Krypton.Toolkit.KryptonButton();
 
             // ====== Relaciones ======
             this.lblInfoRelaciones = new System.Windows.Forms.Label();
@@ -142,18 +142,18 @@ namespace Aplicacion.WinForms.Formularios
             this.cmbPadre = new System.Windows.Forms.ComboBox();
             this.lblMadre = new System.Windows.Forms.Label();
             this.cmbMadre = new System.Windows.Forms.ComboBox();
-            this.btnVincular = new System.Windows.Forms.Button();
+            this.btnVincular = new Krypton.Toolkit.KryptonButton();
             this.lblHijos = new System.Windows.Forms.Label();
             this.lstHijos = new System.Windows.Forms.ListBox();
-            this.btnQuitarVinculo = new System.Windows.Forms.Button();
+            this.btnQuitarVinculo = new Krypton.Toolkit.KryptonButton();
 
             // ====== Árbol ======
             this.lblInfoArbol = new System.Windows.Forms.Label();
             this.lblAncestro = new System.Windows.Forms.Label();
             this.cmbAncestroRaiz = new System.Windows.Forms.ComboBox();
-            this.btnRedibujarArbol = new System.Windows.Forms.Button();
-            this.btnAjustarArbol = new System.Windows.Forms.Button();
-            this.btnExportarArbol = new System.Windows.Forms.Button();
+            this.btnRedibujarArbol = new Krypton.Toolkit.KryptonButton();
+            this.btnAjustarArbol = new Krypton.Toolkit.KryptonButton();
+            this.btnExportarArbol = new Krypton.Toolkit.KryptonButton();
             this.pnlCanvasArbol = new System.Windows.Forms.Panel();
 
             // TabControl
@@ -202,14 +202,14 @@ namespace Aplicacion.WinForms.Formularios
             this.btnEliminar.Left = 232; this.btnEliminar.Top = 8;
 
             // Botón Mapa (abre ventana con mapa interactivo)
-            this.btnMapa = new System.Windows.Forms.Button();
+            this.btnMapa = new Krypton.Toolkit.KryptonButton();
             this.btnMapa.Text = "Mapa";
             this.btnMapa.Width = 100;
             this.btnMapa.Left = 344; this.btnMapa.Top = 8;
             this.btnMapa.Click += new System.EventHandler(this.btnMapa_Click);
 
             // Botón Volver: cierra FormPrincipal y vuelve al menú inicio
-            this.btnVolverMain = new System.Windows.Forms.Button();
+            this.btnVolverMain = new Krypton.Toolkit.KryptonButton();
             this.btnVolverMain.Text = "Volver";
             this.btnVolverMain.Width = 100;
             this.btnVolverMain.Left = 456; this.btnVolverMain.Top = 8;
@@ -478,12 +478,12 @@ namespace Aplicacion.WinForms.Formularios
             this.btnExportarArbol.Left = 610; this.btnExportarArbol.Top = 38; this.btnExportarArbol.Width = 120;
             this.btnExportarArbol.Click += new System.EventHandler(this.btnExportarArbol_Click);
 
-            this.btnExportarProyecto = new System.Windows.Forms.Button();
+            this.btnExportarProyecto = new Krypton.Toolkit.KryptonButton();
             this.btnExportarProyecto.Text = "Exportar JSON";
             this.btnExportarProyecto.Left = 740; this.btnExportarProyecto.Top = 38; this.btnExportarProyecto.Width = 120;
             this.btnExportarProyecto.Click += new System.EventHandler(this.btnExportarProyecto_Click);
 
-            this.btnVolver = new System.Windows.Forms.Button();
+            this.btnVolver = new Krypton.Toolkit.KryptonButton();
             this.btnVolver.Text = "Volver al menú";
             this.btnVolver.Left = 880; this.btnVolver.Top = 38; this.btnVolver.Width = 120;
             this.btnVolver.Click += new System.EventHandler(this.btnVolver_Click);
@@ -502,6 +502,32 @@ namespace Aplicacion.WinForms.Formularios
             this.tabArbol.Controls.Add(this.btnExportarProyecto);
             this.tabArbol.Controls.Add(this.btnVolver);
             this.tabArbol.Controls.Add(this.pnlCanvasArbol);
+
+            // Normalize todos los KryptonButton creados en este formulario: sincronizar Text/Values.Text, limpiar Images y aplicar padding/font conservadora
+            try
+            {
+                void Norm(Control parent)
+                {
+                    foreach (Control ch in parent.Controls)
+                    {
+                        if (ch is Krypton.Toolkit.KryptonButton kb)
+                        {
+                            try
+                            {
+                                kb.Values.Image = null;
+                                kb.Values.Text = kb.Text ?? string.Empty;
+                                kb.StateCommon.Content.ShortText.Font = new System.Drawing.Font("Segoe UI", 9F);
+                                kb.StateCommon.Content.Padding = new System.Windows.Forms.Padding(6, 6, 6, 6);
+                            }
+                            catch { }
+                        }
+                        // Recurse
+                        Norm(ch);
+                    }
+                }
+                Norm(this);
+            }
+            catch { }
 
             // FormPrincipal
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;

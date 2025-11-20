@@ -11,11 +11,11 @@ namespace Aplicacion.WinForms.Formularios
     /// </summary>
     public class FamilyPickerForm : Form
     {
-        private ListView _lv;
-        private Button _btnOk;
-        private Button _btnDelete;
-        private Button _btnCancel;
-        private Button _btnBrowse;
+    private ListView _lv;
+    private Krypton.Toolkit.KryptonButton _btnOk;
+    private Krypton.Toolkit.KryptonButton _btnDelete;
+    private Krypton.Toolkit.KryptonButton _btnCancel;
+    private Krypton.Toolkit.KryptonButton _btnBrowse;
         public string? SelectedFilePath { get; private set; }
 
         public FamilyPickerForm()
@@ -30,10 +30,32 @@ namespace Aplicacion.WinForms.Formularios
             _lv.Columns.Add("Creado", 120);
             _lv.Columns.Add("Modificado", 120);
 
-            _btnBrowse = new Button { Text = "Examinar...", Left = 12, Top = 310, Width = 100 };
-            _btnDelete = new Button { Text = "Eliminar", Left = 124, Top = 310, Width = 100 };
-            _btnOk = new Button { Text = "Cargar", Left = 480, Top = 310, Width = 80, DialogResult = DialogResult.OK };
-            _btnCancel = new Button { Text = "Cancelar", Left = 568, Top = 310, Width = 80, DialogResult = DialogResult.Cancel };
+            _btnBrowse = new Krypton.Toolkit.KryptonButton();
+            _btnDelete = new Krypton.Toolkit.KryptonButton();
+            _btnOk = new Krypton.Toolkit.KryptonButton();
+            _btnCancel = new Krypton.Toolkit.KryptonButton();
+
+            // Asignar textos y propiedades visibles, luego normalizar valores Krypton
+            try
+            {
+                _btnBrowse.Text = "Examinar..."; _btnBrowse.Left = 12; _btnBrowse.Top = 310; _btnBrowse.Width = 100;
+                _btnDelete.Text = "Eliminar"; _btnDelete.Left = 124; _btnDelete.Top = 310; _btnDelete.Width = 100;
+                _btnOk.Text = "Cargar"; _btnOk.Left = 480; _btnOk.Top = 310; _btnOk.Width = 80; _btnOk.DialogResult = DialogResult.OK;
+                _btnCancel.Text = "Cancelar"; _btnCancel.Left = 568; _btnCancel.Top = 310; _btnCancel.Width = 80; _btnCancel.DialogResult = DialogResult.Cancel;
+
+                foreach (var kb in new[] { _btnBrowse, _btnDelete, _btnOk, _btnCancel })
+                {
+                    try
+                    {
+                        kb.Values.Image = null;
+                        kb.Values.Text = kb.Text ?? string.Empty;
+                        kb.StateCommon.Content.ShortText.Font = new System.Drawing.Font("Segoe UI", 9F);
+                        kb.StateCommon.Content.Padding = new System.Windows.Forms.Padding(6, 6, 6, 6);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
 
             _btnBrowse.Click += (_, __) => BrowseForFile();
             _btnDelete.Click += (_, __) => DeleteSelected();

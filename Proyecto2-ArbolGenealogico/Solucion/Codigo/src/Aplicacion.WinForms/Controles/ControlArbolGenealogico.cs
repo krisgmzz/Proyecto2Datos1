@@ -97,7 +97,23 @@ namespace Aplicacion.WinForms.Controles
 
         // === API pública ===
         public void EstablecerAvatarGenerico(string ruta) => _avatarGen = ruta;
-        public void AplicarTema(bool oscuro) { _temaOscuro = oscuro; Invalidate(); }
+        public void AplicarTema(bool oscuro)
+        {
+            _temaOscuro = oscuro;
+            try
+            {
+                // Use ThemeManager palettes if available to set a matching background
+                var pal = Aplicacion.WinForms.Servicios.ThemeManager.Current;
+                if (pal != null)
+                {
+                    BackColor = pal.Surface;
+                    ForeColor = pal.Fore;
+                }
+            }
+            catch { }
+            Invalidate();
+            Refresh();
+        }
 
         public void CargarDatos(IEnumerable<PersonaVis> personas, IEnumerable<Relacion> relaciones)
         {

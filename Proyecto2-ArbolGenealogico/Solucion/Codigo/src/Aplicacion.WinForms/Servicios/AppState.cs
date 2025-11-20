@@ -63,6 +63,15 @@ namespace Aplicacion.WinForms.Servicios
                     {
                         Persons.Add(new MapPerson { Id = pd.Cedula, Nombre = pd.Nombres + " " + pd.Apellidos, Latitud = pd.Latitud, Longitud = pd.Longitud, FotoRuta = pd.FotoRuta });
                     }
+                    // Aplicar tema guardado en el proyecto (si existe)
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(p.Theme) && p.Theme.Equals("Dark", System.StringComparison.OrdinalIgnoreCase))
+                            ThemeManager.ApplyTheme(ThemeManager.Dark);
+                        else
+                            ThemeManager.ApplyTheme(ThemeManager.Light);
+                    }
+                    catch { }
                     return true;
                 }
             }

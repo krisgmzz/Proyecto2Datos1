@@ -28,6 +28,7 @@
     <PackageReference Include="CefSharp.WinForms" Version="141.0.110" />
     <PackageReference Include="CefSharp.Common" Version="141.0.110" />
     <PackageReference Include="GMap.NET.WindowsForms" Version="1.7.5" />
+    <PackageReference Include="Krypton.Toolkit" Version="6.0.0" />
   <!-- Actualizar WebView2 a la versión resuelta por NuGet para evitar NU1603 al restaurar -->
   <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2045.28" />
   </ItemGroup>
