@@ -27,6 +27,8 @@ namespace Aplicacion.WinForms.Formularios
         {
             InitializeComponent();
             InicializarUi();
+            // Hook selecting to provide sliding transitions between tabs
+            try { tabPrincipal.Selecting -= TabPrincipal_Selecting; tabPrincipal.Selecting += TabPrincipal_Selecting; } catch { }
             SeleccionarPestaña(pestañaInicial);
 
             // Aumentar el ancho de la ventana un 10% al iniciar para evitar recortes
@@ -162,9 +164,21 @@ namespace Aplicacion.WinForms.Formularios
         private void SeleccionarPestaña(string nombre)
         {
             if (string.Equals(nombre, "Relaciones", StringComparison.OrdinalIgnoreCase))
-                tabPrincipal.SelectedTab = tabRelaciones;
+            {
+                var idx = tabPrincipal.TabPages.IndexOf(tabRelaciones);
+                if (!Aplicacion.WinForms.Servicios.WindowTransitions.SlideTabTransition(tabPrincipal, idx))
+                {
+                    tabPrincipal.SelectedTab = tabRelaciones;
+                }
+            }
             else
-                tabPrincipal.SelectedTab = tabPersonas;
+            {
+                var idx = tabPrincipal.TabPages.IndexOf(tabPersonas);
+                if (!Aplicacion.WinForms.Servicios.WindowTransitions.SlideTabTransition(tabPrincipal, idx))
+                {
+                    tabPrincipal.SelectedTab = tabPersonas;
+                }
+            }
         }
 
         private void InicializarUi()
@@ -302,14 +316,31 @@ namespace Aplicacion.WinForms.Formularios
             };
             _ctrlArbol.AplicarTema(true);
             _ctrlArbol.EstablecerAvatarGenerico(ResolverRutaRecurso("avatar_gen.png"));
-            _split.Panel2.Controls.Add(_ctrlArbol);
+            try
+            {
+                if (this.tabArbol != null)
+                {
+                    this.tabArbol.Controls.Clear();
+                    this.tabArbol.Controls.Add(_ctrlArbol);
+                    _ctrlArbol.Dock = DockStyle.Fill;
+                }
+                else
+                {
+                    _split.Panel2.Controls.Add(_ctrlArbol);
+                }
+            }
+            catch { }
 
             Controls.Add(_split);
             _split.BringToFront();
 
             // Ocultar pestaña "Árbol" si existía
-            if (tabPrincipal.TabPages.Contains(tabArbol))
-                tabPrincipal.TabPages.Remove(tabArbol);
+            try
+            {
+                if (tabArbol != null && tabPrincipal.TabPages.Contains(tabArbol))
+                    tabPrincipal.TabPages.Remove(tabArbol);
+            }
+            catch { }
 
             AjustarSplitterSeguro();
         }
@@ -857,6 +888,24 @@ namespace Aplicacion.WinForms.Formularios
             catch { }
         }
 
+        private void TabPrincipal_Selecting(object? sender, System.Windows.Forms.TabControlCancelEventArgs e)
+        {
+            try
+            {
+                if (sender is TabControl tc)
+                {
+                    // Cancel the immediate switch and perform our animated slide
+                    if (e.TabPageIndex != tc.SelectedIndex)
+                    {
+                        // Attempt to perform animated slide; only cancel if animation started successfully
+                        bool started = Aplicacion.WinForms.Servicios.WindowTransitions.SlideTabTransition(tc, e.TabPageIndex);
+                        if (started) e.Cancel = true;
+                    }
+                }
+            }
+            catch { }
+        }
+
         private void RefreshStatistics()
         {
             try
@@ -1017,8 +1066,21 @@ namespace Aplicacion.WinForms.Formularios
 
         private void btnVolver_Click(object sender, EventArgs e)
         {
-            // Cerrar este formulario para volver al inicio (el FormInicio se ocultó al abrir este)
-            this.Close();
+            // Animate return to owner with fade: fade in owner and fade out this
+            try
+            {
+                var owner = this.Owner;
+                if (owner != null)
+                {
+                    Aplicacion.WinForms.Servicios.WindowTransitions.FadeIn(owner, 220);
+                    Aplicacion.WinForms.Servicios.WindowTransitions.FadeOut(this, 220, closeAfter: true);
+                }
+                else
+                {
+                    this.Close();
+                }
+            }
+            catch { try { this.Close(); } catch { } }
         }
 
         // -------- MAPA (ventana con marcadores por persona) --------

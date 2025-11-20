@@ -133,5 +133,90 @@ namespace Aplicacion.WinForms.Servicios
             }
             catch { }
         }
+
+        // Slide transition between TabControl pages. toIndex is target tab index.
+        // direction: if toIndex > fromIndex, we consider it a move to the right.
+        // Returns true if the animation was started, false if fallback to direct selection should be used.
+        public static bool SlideTabTransition(TabControl tab, int toIndex, int durationMs = 260)
+        {
+            if (tab == null) return false;
+            if (toIndex < 0 || toIndex >= tab.TabCount) return false;
+            try
+            {
+                int fromIndex = tab.SelectedIndex;
+                if (fromIndex == toIndex) return false;
+                if (tab.Width <= 10 || tab.Height <= 10) { tab.SelectedIndex = toIndex; return false; }
+
+                // Try to capture bitmaps; if it fails, fall back
+                Bitmap fromBmp;
+                Bitmap toBmp;
+                try
+                {
+                    fromBmp = new Bitmap(tab.Width, tab.Height);
+                    toBmp = new Bitmap(tab.Width, tab.Height);
+                    try { tab.TabPages[fromIndex].DrawToBitmap(fromBmp, new Rectangle(0, 0, tab.Width, tab.Height)); } catch { }
+                    try { tab.TabPages[toIndex].DrawToBitmap(toBmp, new Rectangle(0, 0, tab.Width, tab.Height)); } catch { }
+                }
+                catch
+                {
+                    try { tab.SelectedIndex = toIndex; } catch { }
+                    return false;
+                }
+
+                InvokeOnUi(tab, () =>
+                {
+                    try
+                    {
+                        var parent = tab.Parent ?? tab;
+                        var overlay = new Panel { Parent = parent, Location = tab.Location, Size = tab.Size, BackColor = Color.Transparent, Enabled = false };
+                        overlay.BringToFront();
+
+                        var pbFrom = new PictureBox { Image = fromBmp, SizeMode = PictureBoxSizeMode.Normal, Size = tab.Size, Location = Point.Empty };
+                        var pbTo = new PictureBox { Image = toBmp, SizeMode = PictureBoxSizeMode.Normal, Size = tab.Size };
+
+                        int dir = toIndex > fromIndex ? 1 : -1; // moving right or left
+                        pbTo.Left = -dir * tab.Width;
+
+                        overlay.Controls.Add(pbFrom);
+                        overlay.Controls.Add(pbTo);
+
+                        int steps = Math.Max(4, durationMs / 15);
+                        int interval = Math.Max(10, durationMs / steps);
+                        double delta = (double)tab.Width / steps;
+
+                        var timer = new System.Windows.Forms.Timer { Interval = interval };
+                        timer.Tick += (s, e) =>
+                        {
+                            try
+                            {
+                                pbFrom.Left += (int)(delta * dir);
+                                pbTo.Left += (int)(delta * dir);
+
+                                bool finished = (dir > 0 && pbTo.Left >= 0) || (dir < 0 && pbTo.Left <= 0);
+                                if (finished)
+                                {
+                                    timer.Stop();
+                                    try { timer.Dispose(); } catch { }
+                                    try { tab.SelectedIndex = toIndex; } catch { }
+                                    try { overlay.Dispose(); } catch { }
+                                }
+                            }
+                            catch { try { timer.Stop(); timer.Dispose(); } catch { } }
+                        };
+                        timer.Start();
+                    }
+                    catch
+                    {
+                        try { tab.SelectedIndex = toIndex; } catch { }
+                    }
+                });
+                return true;
+            }
+            catch
+            {
+                try { tab.SelectedIndex = toIndex; } catch { }
+                return false;
+            }
+        }
     }
 }

@@ -8,6 +8,8 @@ namespace Aplicacion.WinForms.Servicios
 {
     public static class ThemeManager
     {
+        // Track parents we've attached shadow painting to so we don't double-hook
+        private static readonly System.Collections.Generic.HashSet<Control> _shadowHookedParents = new System.Collections.Generic.HashSet<Control>();
         public static ThemePalette Light { get; } = new ThemePalette
         {
             WindowBackground = Color.FromArgb(250, 250, 252),
@@ -257,6 +259,36 @@ namespace Aplicacion.WinForms.Servicios
 
                                 // Ensure alignment (center) where possible
                                 try { kb.StateCommon.Content.ShortText.TextH = PaletteRelativeAlign.Center; kb.StateCommon.Content.ShortText.TextV = PaletteRelativeAlign.Center; } catch { }
+                            }
+                            catch { }
+                            // Attach a simple shadow painter on the button's parent (draws a soft rounded rectangle behind each KryptonButton)
+                            try
+                            {
+                                var parent = kb.Parent;
+                                if (parent != null && !_shadowHookedParents.Contains(parent))
+                                {
+                                    _shadowHookedParents.Add(parent);
+                                    parent.Paint += (ps, pe) =>
+                                    {
+                                        try
+                                        {
+                                            pe.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                                            foreach (Control child in parent.Controls)
+                                            {
+                                                if (child is KryptonButton kbb && kbb.Visible)
+                                                {
+                                                    var r = kbb.Bounds;
+                                                    var shadowRect = new Rectangle(r.Left + 4, r.Top + 4, r.Width, r.Height);
+                                                    using (var br = new SolidBrush(Color.FromArgb(40, 0, 0, 0)))
+                                                    {
+                                                        try { pe.Graphics.FillPath(br, RoundedRect(shadowRect, p.BorderRadius)); } catch { }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch { }
+                                    };
+                                }
                             }
                             catch { }
                         }

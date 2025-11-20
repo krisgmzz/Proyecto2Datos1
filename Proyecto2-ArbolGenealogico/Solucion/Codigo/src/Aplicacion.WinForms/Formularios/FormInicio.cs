@@ -157,7 +157,7 @@ namespace Aplicacion.WinForms.Formularios
             // Abrir el formulario principal usando transición suave (fade)
             try
             {
-                frm.FormClosed += (_, __) => { try { this.Show(); this.Opacity = 1.0; } catch { } };
+                frm.FormClosed += (_, __) => { try { Aplicacion.WinForms.Servicios.WindowTransitions.FadeIn(this, 220); } catch { try { this.Show(); this.Opacity = 1.0; } catch { } } };
                 // Usar helper para mostrar con fade y ocultar este formulario
                 Aplicacion.WinForms.Servicios.WindowTransitions.ShowFormWithFade(this, frm, 220);
             }
