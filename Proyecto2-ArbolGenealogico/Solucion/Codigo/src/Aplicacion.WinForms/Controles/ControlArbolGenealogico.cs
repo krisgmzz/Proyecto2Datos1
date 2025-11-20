@@ -319,56 +319,127 @@ namespace Aplicacion.WinForms.Controles
                 niveles[lvl] = nueva;
             }
 
-            // Posicionar por nivel (alineación básica + separación adaptativa)
+            //Posicionar parejas como una unidad ===
+            var cajaParejaPos = new Dictionary<(string, string), (float x, float width)>();
+
             float yNivel = _margenY;
+
             foreach (var kv in niveles.OrderBy(k => k.Key))
             {
                 var ids = kv.Value;
+           
+                // Detectar parejas reales dentro de este nivel
+                var parejasNivel = new HashSet<(string A, string B)>();
+                foreach (var (A, B) in parejas)
+                    if (ids.Contains(A) && ids.Contains(B))
+                        parejasNivel.Add((A, B));
 
-                // ancho disponible de dibujo (respetando margen lateral)
-                float availableWidth = Math.Max(100f, ClientSize.Width / _zoom - 2f * _margenX);
-                int n = Math.Max(1, ids.Count);
+                //----------------------------------------------
+                // CREAR LAS CAJAS GARANTIZANDO QUE PAREJAS VAN PRIMERO
+                //----------------------------------------------
 
-                // parámetros mínimos
-                float minSpacing = 8f;
-                float maxRadio = _radio;
+                var cajas = new List<(float width, List<string> miembros)>();
+                var usados = new HashSet<string>();
 
-                // calcular el mejor spacing para que todo quepa; si no cabe, reducir radio
-                float totalNodeWidth = n * (2f * maxRadio);
-                float spacing = _margenX;
-                if (totalNodeWidth + (n - 1) * spacing > availableWidth)
+                float espPareja = 18f;
+                float widthPersona = 2 * _radio;
+
+                // 1) Agregar parejas primero SIEMPRE
+                foreach (var (A, B) in parejasNivel)
                 {
-                    // recomputar spacing para ajustar dentro del ancho disponible
-                    spacing = (availableWidth - totalNodeWidth) / Math.Max(1, n - 1);
-                    if (spacing < minSpacing)
-                    {
-                        // reducir radio para que quepa con minSpacing
-                        spacing = minSpacing;
-                        float neededWidthForMinSpacing = n * (2f * maxRadio) + (n - 1) * spacing;
-                        if (neededWidthForMinSpacing > availableWidth)
-                        {
-                            // nuevo radio máximo que permite caber
-                            float computedRadio = (availableWidth - (n - 1) * spacing) / (2f * n);
-                            maxRadio = Math.Max(12f, computedRadio);
-                        }
-                    }
+                    cajas.Add((
+                        width: widthPersona * 2 + espPareja,
+                        miembros: new List<string> { A, B }
+                    ));
+
+                    usados.Add(A);
+                    usados.Add(B);
                 }
 
-                // calcular ancho final de fila y punto de inicio centrado
-                float anchoFila = n * (2f * maxRadio) + (n - 1) * spacing;
-                float xInicio = Math.Max(_margenX, (ClientSize.Width / _zoom - anchoFila) / 2f);
-                float xCursor = xInicio;
-
+                // 2) Luego agregar los individuos no usados
                 foreach (var id in ids)
                 {
-                    _pos[id] = new PointF(xCursor, yNivel);
-                    xCursor += 2f * maxRadio + spacing;
+                    if (usados.Contains(id))
+                        continue;
+
+                    cajas.Add((
+                        width: widthPersona,
+                        miembros: new List<string> { id }
+                    ));
+
+                    usados.Add(id);
                 }
-                yNivel += 2f * maxRadio + _margenY;
+
+
+                // Calcular ancho total de fila
+                float availableWidth = Math.Max(100f, ClientSize.Width / _zoom - 2f * _margenX);
+                float spacing = _margenX;
+
+                float totalWidth = cajas.Sum(c => c.width) + (cajas.Count - 1) * spacing;
+
+                if (totalWidth > availableWidth)
+                {
+                    spacing = Math.Max(8f, (availableWidth - cajas.Sum(c => c.width)) / (cajas.Count - 1));
+                }
+
+                float anchoFila = cajas.Sum(c => c.width) + (cajas.Count - 1) * spacing;
+                float xInicio = Math.Max(_margenX, (ClientSize.Width / _zoom - anchoFila) / 2f);
+
+                // Aplicar posiciones
+                float xCursor = xInicio;
+
+                foreach (var caja in cajas)
+                {
+                    if (caja.miembros.Count == 1)
+                    {
+                        string id = caja.miembros[0];
+                        _pos[id] = new PointF(xCursor, yNivel);
+                    }
+                    else
+                    {
+                        string A = caja.miembros[0];
+                        string B = caja.miembros[1];
+
+                        _pos[A] = new PointF(xCursor, yNivel);
+                        _pos[B] = new PointF(xCursor + widthPersona + espPareja, yNivel);
+
+                        // REGISTRO DE ESTA PAREJA
+                        cajaParejaPos[(A, B)] = (xCursor, caja.width);
+                    }
+
+                    xCursor += caja.width + spacing;
+                }
+
+                yNivel += 2 * _radio + _margenY;
             }
 
-            // Ajustar hijos de parejas para que se alineen horizontalmente
-            // centrados debajo del punto medio entre los padres.
+            // Ajustar hijos de parejas para que queden centrados bajo la pareja,
+            // pero sin romper parejas ni reescribir posiciones individuales.
+            //
+            // En lugar de recalcular la X de cada hijo desde cero, tomamos el "bloque"
+            // formado por todos los hijos de esa pareja (y, si alguno está en pareja,
+            // incluimos a su pareja también) y desplazamos ese bloque completo
+            // para que su centro quede alineado con el centro de la pareja de padres.
+
+            // Mapa rápido de "miembro -> pareja" para conservar parejas como unidad
+            var parejaDeMiembro = new Dictionary<string, string>();
+            foreach (var (A, B) in parejas)
+            {
+                if (!parejaDeMiembro.ContainsKey(A)) parejaDeMiembro[A] = B;
+                if (!parejaDeMiembro.ContainsKey(B)) parejaDeMiembro[B] = A;
+            }
+
+            // Precalcular centro X de cada pareja de padres
+            var centroParejaPadres = new Dictionary<(string padre, string madre), float>();
+            foreach (var kv in cajaParejaPos)
+            {
+                var key = kv.Key;
+                var box = kv.Value;
+                float centerX = box.x + box.width / 2f;
+                centroParejaPadres[key] = centerX;
+            }
+
+            // Agrupar hijos por pareja de padres
             var hijosPorPareja = new Dictionary<(string padre, string madre), List<string>>();
 
             foreach (var r in _relaciones)
@@ -386,47 +457,65 @@ namespace Aplicacion.WinForms.Controles
                     hijosPorPareja[key] = lista;
                 }
 
-                if (!lista.Contains(r.HijoId))
+                if (!lista.Contains(r.HijoId!))
                     lista.Add(r.HijoId!);
             }
 
-            // Ahora procesamos pareja por pareja
+            // Ahora procesamos pareja de padres por pareja de padres
             foreach (var kv in hijosPorPareja)
             {
-                var padreId = kv.Key.padre;
-                var madreId = kv.Key.madre;
+                var padresKey = kv.Key;
                 var hijos = kv.Value;
 
-                if (!_pos.ContainsKey(padreId) || !_pos.ContainsKey(madreId))
+                // Si no conocemos la posición de la pareja de padres, ignoramos
+                if (!centroParejaPadres.TryGetValue(padresKey, out float centerPadresX))
                     continue;
 
-                var pPadre = _pos[padreId];
-                var pMadre = _pos[madreId];
-
-                var cPadre = new PointF(pPadre.X + _radio, pPadre.Y + _radio);
-                var cMadre = new PointF(pMadre.X + _radio, pMadre.Y + _radio);
-                var pairCenter = new PointF((cPadre.X + cMadre.X) / 2f, (cPadre.Y + cMadre.Y) / 2f);
-
-                // ------------------------------------------------------------------
-                //  Alinear HERMANOS
-                // ------------------------------------------------------------------
-
-                int n = hijos.Count;
-                if (n == 0) continue;
-
-                float spacing = 12f;                 // separación mínima
-                float anchoTotal = n * (2 * _radio) + (n - 1) * spacing;
-                float xInicio = pairCenter.X - anchoTotal / 2f;   // centrar respecto al punto medio de la pareja
-                float yHijo = _pos[hijos[0]].Y;
-
-                float xCursor = xInicio;
+                // Construimos el conjunto de miembros del bloque:
+                // todos los hijos + sus posibles parejas en el MISMO nivel (misma Y)
+                var miembrosBloque = new HashSet<string>();
 
                 foreach (var hijoId in hijos)
                 {
-                    if (!_pos.ContainsKey(hijoId)) continue;
+                    if (!_pos.ContainsKey(hijoId))
+                        continue;
 
-                    _pos[hijoId] = new PointF(xCursor, yHijo);
-                    xCursor += (2 * _radio) + spacing;
+                    miembrosBloque.Add(hijoId);
+
+                    // Si este hijo está en pareja, movemos a la pareja junto con él
+                    if (parejaDeMiembro.TryGetValue(hijoId, out var parejaId) &&
+                        _pos.ContainsKey(parejaId))
+                    {
+                        // Solo si están al mismo nivel (misma generación)
+                        if (Math.Abs(_pos[parejaId].Y - _pos[hijoId].Y) < 0.1f)
+                            miembrosBloque.Add(parejaId);
+                    }
+                }
+
+                if (miembrosBloque.Count == 0)
+                    continue;
+
+                // Calcular el bounding box horizontal actual del bloque
+                float minX = float.MaxValue;
+                float maxX = float.MinValue;
+
+                foreach (var id in miembrosBloque)
+                {
+                    var pt = _pos[id];
+                    float x1 = pt.X;
+                    float x2 = pt.X + 2 * _radio; // nodo circular
+                    if (x1 < minX) minX = x1;
+                    if (x2 > maxX) maxX = x2;
+                }
+
+                float centerBloqueX = (minX + maxX) / 2f;
+                float deltaX = centerPadresX - centerBloqueX;
+
+                // Desplazar todo el bloque horizontalmente
+                foreach (var id in miembrosBloque)
+                {
+                    var pt = _pos[id];
+                    _pos[id] = new PointF(pt.X + deltaX, pt.Y);
                 }
             }
         }
@@ -558,7 +647,8 @@ namespace Aplicacion.WinForms.Controles
             if (!_pos.TryGetValue(id, out var pt)) return;
 
             var rect = new RectangleF(pt.X, pt.Y, 2 * _radio, 2 * _radio);
-            var rectTexto = new RectangleF(pt.X - _radio * 0.6f, pt.Y + 2 * _radio + 6, _radio * 3.2f, 26);
+            var rectTexto = new RectangleF(pt.X - 40f, pt.Y + 92f, 180f, 42f);
+
 
             // borde
             g.DrawEllipse(penBorde, rect);
